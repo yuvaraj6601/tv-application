@@ -1,0 +1,126 @@
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top left, #11304a 0%, #0b1525 45%, #070b12 100%);
+  padding: 24px;
+  gap: 24px;
+
+  &__brand-panel {
+    max-width: 460px;
+    color: #e5f0ff;
+
+    h1 {
+      margin: 8px 0 10px;
+      font-size: 36px;
+      line-height: 1.12;
+      font-weight: 700;
+    }
+  }
+
+  &__eyebrow {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #93c5fd;
+  }
+
+  &__description {
+    margin: 0;
+    color: #b9cbe3;
+    line-height: 1.6;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: min(420px, 100%);
+    padding: 28px;
+    background: rgba(13, 22, 36, 0.82);
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(7px);
+
+    h2 {
+      color: #ffffff;
+      font-size: 24px;
+      margin: 0;
+    }
+
+    .login-screen__error {
+      color: #f97066;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    input,
+    button {
+      height: 46px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      padding: 0 14px;
+      font-size: 14px;
+    }
+
+    input {
+      background: rgba(255, 255, 255, 0.95);
+      color: #0f172a;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #22d3ee;
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+      }
+    }
+
+    button {
+      background: linear-gradient(90deg, #0ea5e9 0%, #0284c7 100%);
+      color: #ffffff;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(2, 132, 199, 0.35);
+      }
+    }
+
+    button:disabled {
+      background: #98a2b3;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .login-screen__prefill-button {
+      background: transparent;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      color: #dce7f7;
+      box-shadow: none;
+    }
+
+    .login-screen__hint {
+      margin: 2px 0 0;
+      color: #94a3b8;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+  }
+}
+
+@media (max-width: 980px) {
+  .login-screen {
+    flex-direction: column;
+    align-items: stretch;
+
+    &__brand-panel {
+      max-width: none;
+    }
+  }
+}

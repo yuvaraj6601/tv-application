@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `Content` ADD COLUMN `fileData` LONGTEXT NULL,
+    ADD COLUMN `fileMimeType` VARCHAR(191) NULL,
+    ADD COLUMN `fileName` VARCHAR(191) NULL;

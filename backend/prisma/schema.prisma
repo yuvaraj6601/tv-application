@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = "mysql://root:qazwsx%4012@127.0.0.1:3306/tv-application"
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+}
+
+enum ContentType {
+  IMAGE
+  VIDEO
+  WEBPAGE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  devices      Device[]
+}
+
+model Device {
+  id             String            @id @default(cuid())
+  deviceName     String
+  deviceUniqueId String            @unique
+  pairingCode    String?           @db.VarChar(4)
+  isPaired       Boolean           @default(false)
+  userId         String?
+  user           User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  token          String?           @unique
+  lastSeen       DateTime?
+  status         DeviceStatus      @default(OFFLINE)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  contents       Content[]
+  playlists      PlaylistItem[]
+  heartbeats     DeviceHeartbeat[]
+
+  @@index([pairingCode])
+  @@index([status, lastSeen])
+}
+
+model Content {
+  id          String         @id @default(cuid())
+  deviceId    String
+  device      Device         @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  type        ContentType
+  url         String
+  localPath   String?
+  fileName    String?
+  fileMimeType String?
+  fileData    String?        @db.LongText
+  duration    Int?
+  sortOrder   Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  playlistRef PlaylistItem[]
+
+  @@index([deviceId, sortOrder])
+}
+
+model PlaylistItem {
+  id        String   @id @default(cuid())
+  deviceId  String
+  contentId String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, order])
+}
+
+model DeviceHeartbeat {
+  id         String   @id @default(cuid())
+  deviceId   String
+  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  seenAt     DateTime @default(now())
+  appVersion String?
+  ipAddress  String?
+
+  @@index([deviceId, seenAt])
+}
