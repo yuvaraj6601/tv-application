@@ -23,6 +23,58 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
     return new Date(value).toLocaleString();
   };
 
+  const getRequestErrorMessage = (error: unknown, fallbackMessage: string): string => {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'response' in error &&
+      typeof error.response === 'object' &&
+      error.response !== null &&
+      'data' in error.response &&
+      typeof error.response.data === 'object' &&
+      error.response.data !== null
+    ) {
+      const responseData = error.response.data as {
+        message?: unknown;
+        errors?: unknown;
+      };
+
+      if (Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+        const firstError = responseData.errors[0];
+        if (typeof firstError === 'string') {
+          return firstError;
+        }
+      }
+
+      if (typeof responseData.message === 'string' && responseData.message.trim()) {
+        return responseData.message;
+      }
+    }
+
+    return fallbackMessage;
+  };
+
+  const normalizeWebUrl = (value: string): string | null => {
+    const trimmedUrl = value.trim();
+
+    if (!trimmedUrl) {
+      return null;
+    }
+
+    const normalizedUrl = /^https?:\/\//i.test(trimmedUrl) ? trimmedUrl : `https://${trimmedUrl}`;
+
+    try {
+      const parsedUrl = new URL(normalizedUrl);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        return null;
+      }
+
+      return parsedUrl.toString();
+    } catch (_error) {
+      return null;
+    }
+  };
+
   const loadItems = async (): Promise<void> => {
     if (!deviceId) {
       return;
@@ -47,20 +99,27 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
   }, [deviceId]);
 
   const handleAddWebpage = async (): Promise<void> => {
-    if (!deviceId || !webUrl) {
+    if (!deviceId) {
+      return;
+    }
+
+    const normalizedUrl = normalizeWebUrl(webUrl);
+    if (!normalizedUrl) {
+      setErrorMessage('Enter a valid website URL (for example: https://example.com).');
       return;
     }
 
     try {
+      setErrorMessage('');
       await contentService.createWebpage(deviceId, {
-        url: webUrl,
+        url: normalizedUrl,
         order: items.length + 1,
         duration: Number(duration) || 10
       });
       setWebUrl('');
       await loadItems();
-    } catch (_error) {
-      setErrorMessage('Failed to add webpage content.');
+    } catch (error: unknown) {
+      setErrorMessage(getRequestErrorMessage(error, 'Failed to add webpage content.'));
     }
   };
 
