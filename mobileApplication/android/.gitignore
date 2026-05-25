@@ -1,0 +1,11 @@
+# Local SDK path
+local.properties
+
+# Build outputs
+.gradle
+build
+app/build
+
+# IDE
+.idea
+*.iml
