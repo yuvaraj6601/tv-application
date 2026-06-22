@@ -1,0 +1,32 @@
+export const STRINGS = {
+  auth: {
+    login: 'Login',
+    emailPlaceholder: 'Email',
+    passwordPlaceholder: 'Password',
+    loginButton: 'Sign In',
+  },
+  devices: {
+    title: 'Device Fleet',
+    eyebrow: 'Digital Signage Control',
+    subtitle: 'Monitor live status, pair new screens, and open any device to manage playlist content.',
+    pairButton: 'Pair Device',
+    logoutButton: 'Logout',
+    pairingCodePlaceholder: '4-digit pairing code',
+    totalDevices: 'Total Devices',
+    online: 'Online',
+    offline: 'Offline',
+    paired: 'Paired',
+    loading: 'Loading devices...',
+    errorLoad: 'Failed to load devices.',
+    errorPair: 'Pairing failed. Please verify the code.',
+    errorClipboard: 'Unable to copy code from browser clipboard.',
+  },
+  testingCodes: {
+    title: 'Verification Codes (Testing)',
+    generateButton: 'Generate 5 Codes',
+    generating: 'Generating...',
+    empty: 'No active verification codes found.',
+    subtitle: 'Use any active code below to pair quickly during testing.',
+    errorGenerate: 'Failed to generate testing verification codes.',
+  },
+};

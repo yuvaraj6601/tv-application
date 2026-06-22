@@ -26,11 +26,36 @@ coverage/
 # frontend tooling
 **/.vite/
 
-# react native
+# react native — android build artifacts
 **/android/.gradle/
 **/android/app/build/
+**/android/app/.cxx/
+**/android/build/
+**/android/.idea/
+**/android/**/*.iml
+**/android/local.properties
+**/android/captures/
+**/android/fastlane/report.xml
+**/android/fastlane/Preview.html
+**/android/fastlane/screenshots
+**/android/fastlane/test_output
+
+# react native — ios
 **/ios/build/
 **/ios/Pods/
+**/ios/*.xcworkspace/xcuserdata/
+**/ios/*.xcodeproj/xcuserdata/
+
+# react native — metro
+**/.metro-health-check*
+**/metro-cache/
 
 # prisma generated artifacts
 **/.prisma/
+
+# Android binary artifacts (should never be committed)
+**/*.aar
+# gradle-wrapper.jar is the only .jar that should be committed (it's tiny & required)
+# Exclude any .jar that lands outside the gradle wrapper location
+mobileApplication/*.jar
+backend/*.jar

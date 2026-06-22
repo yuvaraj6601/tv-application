@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Expo / Metro
+.expo/
+.metro-health-check*
+metro-cache/
+
+# Android build artifacts
+android/.gradle/
+android/app/build/
+android/app/.cxx/
+android/build/
+android/.idea/
+android/**/*.iml
+android/local.properties
+android/captures/
+
+# iOS build artifacts
+ios/build/
+ios/Pods/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/.xcode.env.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

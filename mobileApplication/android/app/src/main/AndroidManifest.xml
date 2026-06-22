@@ -8,6 +8,7 @@
         android:name=".MainApplication"
         android:label="DigitalSignageTV"
         android:allowBackup="false"
+        android:usesCleartextTraffic="true"
         android:theme="@style/AppTheme">
         <activity
             android:name=".MainActivity"
