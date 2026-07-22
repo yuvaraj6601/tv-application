@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
 import { setDevices } from '../../../store/slices/devices.slice';
-import { TestingPairingCodeModel, deviceService } from '../../../services/device.service';
+import { deviceService } from '../../../services/device.service';
 import { dashboardSocketService } from '../../../services/socket.service';
 import { clearSession } from '../../../store/slices/auth.slice';
 import './devices.screen.scss';
@@ -22,9 +22,7 @@ export const DevicesScreen = (): React.JSX.Element => {
   const devices = useSelector((state: RootState) => state.devices.list);
   const token = useSelector((state: RootState) => state.auth.token);
   const [pairingCode, setPairingCode] = useState<string>('');
-  const [testingCodes, setTestingCodes] = useState<TestingPairingCodeModel[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isGeneratingCodes, setIsGeneratingCodes] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   const dashboardSummary = useMemo(() => {
@@ -45,12 +43,6 @@ export const DevicesScreen = (): React.JSX.Element => {
     try {
       const list = await deviceService.list();
       dispatch(setDevices(list));
-      try {
-        const codes = await deviceService.getTestingPairingCodes();
-        setTestingCodes(codes);
-      } catch (_error) {
-        setTestingCodes([]);
-      }
     } catch (_error) {
       setErrorMessage('Failed to load devices.');
     } finally {
@@ -103,31 +95,6 @@ export const DevicesScreen = (): React.JSX.Element => {
     navigate('/login');
   };
 
-  const handleGenerateTestingCodes = async (): Promise<void> => {
-    setIsGeneratingCodes(true);
-    setErrorMessage('');
-    try {
-      await deviceService.generateTestingPairingCodes(5);
-      await reloadDevices();
-    } catch (_error) {
-      setErrorMessage('Failed to generate testing verification codes.');
-    } finally {
-      setIsGeneratingCodes(false);
-    }
-  };
-
-  const handleCopyCode = async (value: string | null): Promise<void> => {
-    if (!value) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch (_error) {
-      setErrorMessage('Unable to copy code from browser clipboard.');
-    }
-  };
-
   return (
     <section className="devices-screen">
       <header className="devices-screen__header">
@@ -170,38 +137,6 @@ export const DevicesScreen = (): React.JSX.Element => {
           <span>Paired</span>
           <strong>{dashboardSummary.pairedDevices}</strong>
         </article>
-      </section>
-      <section className="testing-pairing-codes">
-        <div className="testing-pairing-codes__header">
-          <h2>Verification Codes (Testing)</h2>
-          <button type="button" onClick={handleGenerateTestingCodes} disabled={isGeneratingCodes}>
-            {isGeneratingCodes ? 'Generating...' : 'Generate 5 Codes'}
-          </button>
-        </div>
-        <p>Use any active code below to pair quickly during testing.</p>
-        <div className="testing-pairing-codes__list">
-          {testingCodes.length === 0 ? (
-            <div className="testing-pairing-codes__empty">No active verification codes found.</div>
-          ) : (
-            testingCodes.map(code => (
-              <article className="testing-code-card" key={code.id}>
-                <p className="testing-code-card__device">{code.deviceName}</p>
-                <div className="testing-code-card__code-row">
-                  <strong>{code.pairingCode || '----'}</strong>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleCopyCode(code.pairingCode);
-                    }}
-                  >
-                    Copy
-                  </button>
-                </div>
-                <span>Updated: {formatDateTime(code.updatedAt)}</span>
-              </article>
-            ))
-          )}
-        </div>
       </section>
       {errorMessage ? <p className="devices-screen__error">{errorMessage}</p> : null}
       {isLoading ? <p className="devices-screen__loading">Loading devices...</p> : null}

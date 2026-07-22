@@ -16,7 +16,6 @@
     "axios": "^1.11.0",
     "react": "^19.1.4",
     "react-native": "^0.81.1",
-    "react-native-fast-image": "^8.6.3",
     "react-native-fs": "^2.20.0",
     "react-native-mmkv": "^3.3.0",
     "react-native-safe-area-context": "^5.8.0",

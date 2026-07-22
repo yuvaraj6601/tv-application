@@ -55,32 +55,6 @@ export const deviceController = {
       data: devices
     });
   },
-  getTestingPairingCodes: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    if (!req.auth) {
-      res.status(401).json({ status: false, message: 'Unauthorized' });
-      return;
-    }
-
-    const codes = await deviceService.getTestingPairingCodes();
-    res.status(200).json({
-      status: true,
-      data: codes
-    });
-  },
-  generateTestingPairingCodes: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    if (!req.auth) {
-      res.status(401).json({ status: false, message: 'Unauthorized' });
-      return;
-    }
-
-    const countFromBody = Number(req.body.count || 5);
-    const codes = await deviceService.generateTestingPairingCodes(countFromBody);
-    res.status(201).json({
-      status: true,
-      message: 'Testing verification codes generated',
-      data: codes
-    });
-  },
   getById: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     if (!req.auth) {
       res.status(401).json({ status: false, message: 'Unauthorized' });

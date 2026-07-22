@@ -19,13 +19,6 @@ export interface DeviceDetailModel {
   lastHeartbeatIpAddress: string | null;
 }
 
-export interface TestingPairingCodeModel {
-  id: string;
-  deviceName: string;
-  pairingCode: string | null;
-  updatedAt: string;
-}
-
 export const deviceService = {
   list: async (): Promise<DeviceSummary[]> => {
     const response = await dashboardAxios.get<ApiResponseModel<DeviceSummary[]>>('/api/v1/device');
@@ -33,16 +26,6 @@ export const deviceService = {
   },
   getById: async (deviceId: string): Promise<DeviceDetailModel> => {
     const response = await dashboardAxios.get<ApiResponseModel<DeviceDetailModel>>(`/api/v1/device/${deviceId}`);
-    return response.data.data;
-  },
-  getTestingPairingCodes: async (): Promise<TestingPairingCodeModel[]> => {
-    const response = await dashboardAxios.get<ApiResponseModel<TestingPairingCodeModel[]>>('/api/v1/device/testing/pairing-codes');
-    return response.data.data;
-  },
-  generateTestingPairingCodes: async (count = 5): Promise<TestingPairingCodeModel[]> => {
-    const response = await dashboardAxios.post<ApiResponseModel<TestingPairingCodeModel[]>>('/api/v1/device/testing/pairing-codes/generate', {
-      count
-    });
     return response.data.data;
   },
   pairByCode: async (pairingCode: string): Promise<void> => {

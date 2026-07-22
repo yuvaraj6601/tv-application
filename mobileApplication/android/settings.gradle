@@ -12,5 +12,3 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
 
 rootProject.name = 'DigitalSignageTV'
 include ':app'
-include ':react-native-webview'
-project(':react-native-webview').projectDir = new File(rootDir, '../node_modules/react-native-webview/android')

@@ -36,7 +36,7 @@ model Device {
   isPaired       Boolean           @default(false)
   userId         String?
   user           User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  token          String?           @unique
+  token          String?           @unique @db.VarChar(512)
   lastSeen       DateTime?
   status         DeviceStatus      @default(OFFLINE)
   createdAt      DateTime          @default(now())

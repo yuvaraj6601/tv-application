@@ -35,8 +35,6 @@ deviceRoute.post(
   validationMiddleware(devicePairValidation),
   deviceController.pairByCode
 );
-deviceRoute.get('/testing/pairing-codes', authMiddleware, requireRole(['ADMIN']), deviceController.getTestingPairingCodes);
-deviceRoute.post('/testing/pairing-codes/generate', authMiddleware, requireRole(['ADMIN']), deviceController.generateTestingPairingCodes);
 deviceRoute.get('/', authMiddleware, requireRole(['ADMIN']), deviceController.getList);
 deviceRoute.post(
   '/:deviceId/heartbeat',

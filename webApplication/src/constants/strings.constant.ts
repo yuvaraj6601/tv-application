@@ -21,12 +21,4 @@ export const STRINGS = {
     errorPair: 'Pairing failed. Please verify the code.',
     errorClipboard: 'Unable to copy code from browser clipboard.',
   },
-  testingCodes: {
-    title: 'Verification Codes (Testing)',
-    generateButton: 'Generate 5 Codes',
-    generating: 'Generating...',
-    empty: 'No active verification codes found.',
-    subtitle: 'Use any active code below to pair quickly during testing.',
-    errorGenerate: 'Failed to generate testing verification codes.',
-  },
 };

@@ -1,4 +1,5 @@
 import { mobileAxios } from '../utils/axios.utils';
+import { config } from '../config';
 
 export const heartbeatService = {
   start: (deviceId: string): (() => void) => {
@@ -8,7 +9,7 @@ export const heartbeatService = {
           appVersion: '1.0.0'
         })
         .catch(() => undefined);
-    }, Number(process.env.HEARTBEAT_INTERVAL_MS || 30000));
+    }, config.heartbeatIntervalMs);
 
     return () => {
       clearInterval(interval);

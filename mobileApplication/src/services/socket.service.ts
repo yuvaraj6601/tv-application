@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { config } from '../config';
 
 class SocketService {
   private socket: Socket | null = null;
@@ -8,7 +9,7 @@ class SocketService {
       return this.socket;
     }
 
-    this.socket = io(process.env.SOCKET_URL || '', {
+    this.socket = io(config.socketUrl, {
       transports: ['websocket'],
       auth: {
         token

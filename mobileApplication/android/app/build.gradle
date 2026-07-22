@@ -4,6 +4,7 @@ apply plugin: "com.facebook.react"
 
 react {
     // Hermes is now enabled by default. Disable by adding `hermesEnabled = false`
+    autolinkLibrariesWithApp()
 }
 
 android {
@@ -45,12 +46,4 @@ android {
 dependencies {
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
-    implementation project(':react-native-community_netinfo')
-    implementation project(':react-native-fast-image')
-    implementation project(':react-native-fs')
-    implementation project(':react-native-mmkv')
-    implementation project(':react-native-video')
-    implementation project(':react-native-webview')
-    implementation project(':react-native-safe-area-context')
-    implementation project(':react-native-screens')
 }

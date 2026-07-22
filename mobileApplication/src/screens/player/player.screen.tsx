@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import Video from 'react-native-video';
 import WebView from 'react-native-webview';
 import { useDispatch, useSelector } from 'react-redux';
@@ -19,6 +18,7 @@ export const PlayerScreen = (): React.JSX.Element => {
   const deviceId = useSelector((state: RootState) => state.device.deviceId);
   const deviceToken = useSelector((state: RootState) => state.device.deviceToken);
   const syncInProgressRef = useRef<boolean>(false);
+  const wasOfflineRef = useRef<boolean>(false);
 
   const currentItem = useMemo(() => {
     return items[currentIndex] || null;
@@ -65,9 +65,14 @@ export const PlayerScreen = (): React.JSX.Element => {
         });
     };
 
-    const unsubscribeNetwork = NetInfo.addEventListener(state => {
-      if (state.isConnected && state.isInternetReachable) {
+    const unsubscribeNetwork = NetInfo.addEventListener(networkState => {
+      const isOnline = networkState.isConnected === true &&
+        (networkState.isInternetReachable === null || networkState.isInternetReachable === true);
+      if (isOnline && wasOfflineRef.current) {
+        wasOfflineRef.current = false;
         resync();
+      } else if (!isOnline) {
+        wasOfflineRef.current = true;
       }
     });
 
@@ -93,7 +98,7 @@ export const PlayerScreen = (): React.JSX.Element => {
   }
 
   if (currentItem.type === 'IMAGE') {
-    return <FastImage style={styles.media} source={{ uri: `file://${currentItem.localPath}` }} resizeMode={FastImage.resizeMode.contain} />;
+    return <Image style={styles.media} source={{ uri: `file://${currentItem.localPath}` }} resizeMode="contain" />;
   }
 
   if (currentItem.type === 'VIDEO') {

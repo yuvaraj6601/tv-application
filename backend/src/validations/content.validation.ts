@@ -1,10 +1,25 @@
 import Joi from 'joi';
 
+const webUrl = () =>
+  Joi.string().custom((value: string, helpers) => {
+    const normalizedValue = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+    try {
+      const parsedUrl = new URL(normalizedValue);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        return helpers.error('any.invalid');
+      }
+      return parsedUrl.toString();
+    } catch (_error) {
+      return helpers.error('any.invalid');
+    }
+  }, 'web url normalization');
+
 export const contentCreateValidation = Joi.object({
   type: Joi.string().valid('IMAGE', 'VIDEO', 'WEBPAGE').required(),
   url: Joi.when('type', {
     is: 'WEBPAGE',
-    then: Joi.string().uri().required(),
+    then: webUrl().required(),
     otherwise: Joi.string().allow('').optional()
   }),
   duration: Joi.number().integer().min(1).optional(),
@@ -13,7 +28,7 @@ export const contentCreateValidation = Joi.object({
 
 export const contentUpdateValidation = Joi.object({
   type: Joi.string().valid('IMAGE', 'VIDEO', 'WEBPAGE').optional(),
-  url: Joi.string().uri().optional(),
+  url: webUrl().optional(),
   duration: Joi.number().integer().min(1).optional(),
   order: Joi.number().integer().min(1).optional()
 });

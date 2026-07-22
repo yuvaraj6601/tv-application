@@ -2,55 +2,6 @@ import { prisma } from '../db';
 import { socketGateway } from '../socket/socket.gateway';
 
 export const deviceService = {
-  generateTestingPairingCodes: async (count: number) => {
-    const safeCount = Math.max(1, Math.min(20, count));
-    const now = Date.now();
-
-    const createdDevices = await prisma.$transaction(
-      Array.from({ length: safeCount }).map((_, index) => {
-        const randomSuffix = Math.random().toString(36).slice(2, 8);
-        const pairingCode = String(1000 + Math.floor(Math.random() * 9000));
-
-        return prisma.device.create({
-          data: {
-            deviceName: `Testing Device ${now}-${index + 1}`,
-            deviceUniqueId: `testing-device-${now}-${index + 1}-${randomSuffix}`,
-            pairingCode,
-            isPaired: false,
-            status: 'OFFLINE'
-          },
-          select: {
-            id: true,
-            deviceName: true,
-            pairingCode: true,
-            updatedAt: true
-          }
-        });
-      })
-    );
-
-    return createdDevices;
-  },
-  getTestingPairingCodes: async () => {
-    return prisma.device.findMany({
-      where: {
-        isPaired: false,
-        pairingCode: {
-          not: null
-        }
-      },
-      orderBy: {
-        updatedAt: 'desc'
-      },
-      select: {
-        id: true,
-        deviceName: true,
-        pairingCode: true,
-        updatedAt: true
-      },
-      take: 20
-    });
-  },
   getDeviceList: async (userId: string) => {
     const devices = await prisma.device.findMany({
       where: { userId },

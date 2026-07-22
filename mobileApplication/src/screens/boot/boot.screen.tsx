@@ -18,7 +18,8 @@ export const BootScreen = ({ navigation }: Props): React.JSX.Element => {
   useEffect(() => {
     const bootstrapApplication = async (): Promise<void> => {
       const networkState = await NetInfo.fetch();
-      const hasInternet = Boolean(networkState.isConnected && networkState.isInternetReachable);
+      const hasInternet = networkState.isConnected === true &&
+        (networkState.isInternetReachable === null || networkState.isInternetReachable === true);
       signageStore.dispatch(setOnlineStatus(hasInternet));
 
       if (!hasInternet) {
@@ -63,7 +64,8 @@ export const BootScreen = ({ navigation }: Props): React.JSX.Element => {
       navigation.replace('Pairing');
     };
 
-    bootstrapApplication().catch(() => {
+    bootstrapApplication().catch(error => {
+      console.error('[Boot] Bootstrap failed:', error);
       const offlinePlaylist = localPlaylistService.get();
       if (offlinePlaylist.length > 0) {
         signageStore.dispatch(setPlaylist(offlinePlaylist));
@@ -71,7 +73,6 @@ export const BootScreen = ({ navigation }: Props): React.JSX.Element => {
         navigation.replace('Player');
         return;
       }
-
       navigation.replace('Offline');
     });
   }, [navigation]);

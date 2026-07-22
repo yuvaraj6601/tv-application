@@ -160,16 +160,16 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
       return;
     }
 
-    const nextList = [...items];
     const swapIndex = direction === 'UP' ? index - 1 : index + 1;
-    if (swapIndex < 0 || swapIndex >= nextList.length) {
+    if (swapIndex < 0 || swapIndex >= items.length) {
       return;
     }
 
+    const nextList = [...items];
     const temp = nextList[index];
     nextList[index] = nextList[swapIndex];
     nextList[swapIndex] = temp;
-    setItems(nextList);
+
     try {
       await contentService.reorder(
         deviceId,

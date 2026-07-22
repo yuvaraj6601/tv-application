@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { signageStore } from '../store/store';
+import { config } from '../config';
 
-const apiBaseUrl = process.env.API_BASE_URL || '';
+const apiBaseUrl = config.apiBaseUrl;
 
 export const mobileAxios = axios.create({
   baseURL: apiBaseUrl,

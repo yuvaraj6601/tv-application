@@ -81,7 +81,7 @@ export const fileCacheUtils = {
       if (item.fileData) {
         await RNFS.writeFile(destinationPath, item.fileData, 'base64');
       } else {
-        await RNFS.downloadFile({ fromUrl: item.url, toFile: destinationPath }).promise;
+        await RNFS.downloadFile({ fromUrl: item.url, toFile: destinationPath, connectionTimeout: 30000, readTimeout: 60000 }).promise;
       }
 
       nextItems.push({
