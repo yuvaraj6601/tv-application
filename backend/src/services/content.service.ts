@@ -1,6 +1,7 @@
 import { ContentType } from '@prisma/client';
 import { prisma } from '../db';
 import { socketGateway } from '../socket/socket.gateway';
+import { storageService } from './storage.service';
 
 interface CreateContentPayload {
   deviceId: string;
@@ -20,17 +21,16 @@ export const contentService = {
   },
   create: async (payload: CreateContentPayload) => {
     let finalUrl = payload.url || '';
-    let localPath: string | null = '';
+    let storageKey: string | null = null;
     let fileName: string | undefined;
     let fileMimeType: string | undefined;
-    let fileData: string | undefined;
 
     if (payload.file) {
-      finalUrl = '';
-      localPath = null;
+      const uploaded = await storageService.uploadAsset(payload.file, payload.deviceId);
+      finalUrl = uploaded.url;
+      storageKey = uploaded.storageKey;
       fileName = payload.file.originalname;
       fileMimeType = payload.file.mimetype;
-      fileData = payload.file.buffer.toString('base64');
     }
 
     const content = await prisma.content.create({
@@ -38,10 +38,9 @@ export const contentService = {
         deviceId: payload.deviceId,
         type: payload.type,
         url: finalUrl,
-        localPath,
+        localPath: storageKey,
         fileName,
         fileMimeType,
-        fileData,
         duration: payload.duration,
         sortOrder: payload.order
       }
@@ -62,17 +61,25 @@ export const contentService = {
     file?: Express.Multer.File
   ) => {
     let nextUrl = payload.url;
-    let nextLocalPath: string | null | undefined;
+    let nextStorageKey: string | null | undefined;
     let nextFileName: string | undefined;
     let nextFileMimeType: string | undefined;
-    let nextFileData: string | undefined;
 
     if (file) {
-      nextUrl = '';
-      nextLocalPath = null;
+      const existing = await prisma.content.findUnique({
+        where: { id: payload.contentId },
+        select: { localPath: true }
+      });
+
+      if (existing?.localPath) {
+        await storageService.deleteAsset(existing.localPath);
+      }
+
+      const uploaded = await storageService.uploadAsset(file, payload.deviceId);
+      nextUrl = uploaded.url;
+      nextStorageKey = uploaded.storageKey;
       nextFileName = file.originalname;
       nextFileMimeType = file.mimetype;
-      nextFileData = file.buffer.toString('base64');
     }
 
     const updated = await prisma.content.update({
@@ -80,10 +87,9 @@ export const contentService = {
       data: {
         type: payload.type,
         url: nextUrl,
-        localPath: nextLocalPath,
+        localPath: nextStorageKey,
         fileName: nextFileName,
         fileMimeType: nextFileMimeType,
-        fileData: nextFileData,
         duration: payload.duration,
         sortOrder: payload.order
       }
@@ -99,6 +105,10 @@ export const contentService = {
 
     if (!existing) {
       throw new Error('Content not found');
+    }
+
+    if (existing.localPath) {
+      await storageService.deleteAsset(existing.localPath);
     }
 
     await prisma.content.delete({

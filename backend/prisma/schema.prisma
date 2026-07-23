@@ -58,7 +58,6 @@ model Content {
   localPath   String?
   fileName    String?
   fileMimeType String?
-  fileData    String?        @db.LongText
   duration    Int?
   sortOrder   Int
   createdAt   DateTime       @default(now())

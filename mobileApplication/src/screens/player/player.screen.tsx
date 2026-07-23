@@ -98,7 +98,7 @@ export const PlayerScreen = (): React.JSX.Element => {
   }
 
   if (currentItem.type === 'IMAGE') {
-    return <Image style={styles.media} source={{ uri: `file://${currentItem.localPath}` }} resizeMode="contain" />;
+    return <Image style={styles.media} source={{ uri: `file://${currentItem.localPath}` }} resizeMode="stretch" />;
   }
 
   if (currentItem.type === 'VIDEO') {

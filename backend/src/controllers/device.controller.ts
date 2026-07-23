@@ -95,10 +95,6 @@ export const deviceController = {
     const content = await contentService.getByDeviceId(getParamValue(req.params.deviceId));
     const baseUrl = `${req.protocol}://${req.get('host') || 'localhost:8080'}`;
     const normalizedContent = content.map(item => {
-      if (item.type !== 'WEBPAGE') {
-        return item;
-      }
-
       if (!item.url || item.url.startsWith('http://') || item.url.startsWith('https://')) {
         return item;
       }
