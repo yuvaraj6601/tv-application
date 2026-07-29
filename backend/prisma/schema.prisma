@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:qazwsx%4012@127.0.0.1:3306/tv-application"
+  url      = env("DATABASE_URL")
 }
 
 enum DeviceStatus {

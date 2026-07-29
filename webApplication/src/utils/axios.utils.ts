@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { dashboardStore } from '../store/store';
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const apiBaseUrl = "https://api-spatiabox.alterside.io";
 
 export const dashboardAxios = axios.create({
   baseURL: apiBaseUrl,
