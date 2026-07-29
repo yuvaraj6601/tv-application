@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { LoginScreen } from '../screens/auth/login/login.screen';
+import { SignupScreen } from '../screens/auth/signup/signup.screen';
 import { DevicesScreen } from '../screens/devices/list/devices.screen';
 import { DeviceDetailScreen } from '../screens/devices/detail/device-detail.screen';
 
@@ -25,6 +26,7 @@ export const AppRouter = (): React.JSX.Element => {
   return (
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
+      <Route path="/signup" element={<SignupScreen />} />
       <Route path="/*" element={<ProtectedRoutes />} />
     </Routes>
   );

@@ -1,12 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { DeviceStateModel } from '../../types/app.types';
+import { DeviceOrientation, DeviceStateModel } from '../../types/app.types';
 
 const initialState: DeviceStateModel = {
   deviceId: null,
   deviceUniqueId: null,
   pairingCode: null,
   isPaired: false,
-  deviceToken: null
+  deviceToken: null,
+  orientation: 'PORTRAIT'
 };
 
 const deviceSlice = createSlice({
@@ -25,9 +26,12 @@ const deviceSlice = createSlice({
     },
     setPaired: (state, action: PayloadAction<boolean>) => {
       state.isPaired = action.payload;
+    },
+    setOrientation: (state, action: PayloadAction<DeviceOrientation>) => {
+      state.orientation = action.payload;
     }
   }
 });
 
-export const { setDeviceIdentity, setPairingCode, setDeviceToken, setPaired } = deviceSlice.actions;
+export const { setDeviceIdentity, setPairingCode, setDeviceToken, setPaired, setOrientation } = deviceSlice.actions;
 export default deviceSlice.reducer;

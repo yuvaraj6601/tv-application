@@ -4,6 +4,7 @@ import { jwtHelper } from '../helpers/jwt.helper';
 import { passwordHelper } from '../helpers/password.helper';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { adminBootstrapService } from '../services/admin-bootstrap.service';
+import { authService } from '../services/auth.service';
 
 export const authController = {
   login: async (req: Request, res: Response): Promise<void> => {
@@ -33,6 +34,32 @@ export const authController = {
     res.status(200).json({
       status: true,
       message: 'Login successful',
+      data: {
+        token,
+        email: user.email
+      }
+    });
+  },
+  register: async (req: Request, res: Response): Promise<void> => {
+    const { email, password } = req.body as { email: string; password: string };
+    const user = await authService.register({ email, password });
+
+    if (!user) {
+      res.status(409).json({
+        status: false,
+        message: 'An account with this email already exists'
+      });
+      return;
+    }
+
+    const token = jwtHelper.sign({
+      sub: user.id,
+      role: 'ADMIN'
+    });
+
+    res.status(201).json({
+      status: true,
+      message: 'Account created successfully',
       data: {
         token,
         email: user.email

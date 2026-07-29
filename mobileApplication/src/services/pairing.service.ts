@@ -1,4 +1,5 @@
 import { mobileAxios } from '../utils/axios.utils';
+import { DeviceOrientation } from '../types/app.types';
 
 interface RegisterDevicePayload {
   deviceName: string;
@@ -10,6 +11,7 @@ interface RegisterDeviceResponse {
   pairingCode: string | null;
   deviceToken: string;
   isPaired: boolean;
+  orientation: DeviceOrientation;
 }
 
 interface RegisterDeviceApiResponse {

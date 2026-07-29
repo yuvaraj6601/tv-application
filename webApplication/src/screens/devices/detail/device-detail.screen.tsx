@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DeviceContentItemModel, contentService } from '../../../services/content.service';
-import { DeviceDetailModel, deviceService } from '../../../services/device.service';
+import { DeviceDetailModel, DeviceOrientation, deviceService } from '../../../services/device.service';
+import { Modal } from '../../../components/common/modal/modal.component';
 import './device-detail.screen.scss';
 
 export const DeviceDetailScreen = (): React.JSX.Element => {
@@ -14,6 +15,8 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
   const [uploadType, setUploadType] = useState<'IMAGE' | 'VIDEO'>('IMAGE');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [editingContentId, setEditingContentId] = useState<string | null>(null);
+  const [editDurationValue, setEditDurationValue] = useState<string>('10');
 
   const formatDateTime = (value: string | null): string => {
     if (!value) {
@@ -136,9 +139,27 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
         duration: uploadType === 'IMAGE' ? Number(duration) || 10 : undefined
       });
       event.target.value = '';
+      setDuration('10');
       await loadItems();
     } catch (_error) {
       setErrorMessage('Failed to upload media.');
+    }
+  };
+
+  const handleOrientationChange = async (event: React.ChangeEvent<HTMLSelectElement>): Promise<void> => {
+    if (!deviceId) {
+      return;
+    }
+
+    const nextOrientation = event.target.value as DeviceOrientation;
+    const previousDetail = deviceDetail;
+    setDeviceDetail(prev => (prev ? { ...prev, orientation: nextOrientation } : prev));
+
+    try {
+      await deviceService.updateOrientation(deviceId, nextOrientation);
+    } catch (_error) {
+      setErrorMessage('Failed to update screen orientation.');
+      setDeviceDetail(previousDetail);
     }
   };
 
@@ -154,6 +175,31 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
       setErrorMessage('Failed to delete content.');
     }
   };
+
+  const handleStartEdit = (item: DeviceContentItemModel): void => {
+    setEditingContentId(item.id);
+    setEditDurationValue(String(item.duration ?? 10));
+  };
+
+  const handleCancelEdit = (): void => {
+    setEditingContentId(null);
+  };
+
+  const handleSaveEdit = async (): Promise<void> => {
+    if (!deviceId || !editingContentId) {
+      return;
+    }
+
+    try {
+      await contentService.updateDuration(deviceId, editingContentId, Number(editDurationValue) || 10);
+      setEditingContentId(null);
+      await loadItems();
+    } catch (_error) {
+      setErrorMessage('Failed to update content.');
+    }
+  };
+
+  const editingItem = items.find(item => item.id === editingContentId) || null;
 
   const moveItem = async (index: number, direction: 'UP' | 'DOWN'): Promise<void> => {
     if (!deviceId) {
@@ -236,7 +282,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
       </section>
 
       <section className="content-tools">
-        <div className="tool-card">
+        {/* <div className="tool-card">
           <h3>Add Webpage</h3>
           <label>Web URL</label>
           <input value={webUrl} placeholder="https://example.com" onChange={event => setWebUrl(event.target.value)} />
@@ -245,6 +291,17 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
           <button type="button" onClick={handleAddWebpage}>
             Add Webpage
           </button>
+        </div> */}
+
+        <div className="tool-card">
+          <h3>Screen Orientation</h3>
+          <label>Orientation</label>
+          <select value={deviceDetail?.orientation || 'PORTRAIT'} onChange={handleOrientationChange}>
+            <option value="PORTRAIT">Portrait</option>
+            <option value="LANDSCAPE">Landscape</option>
+            <option value="PORTRAIT_FLIP">Portrait Flip</option>
+            <option value="LANDSCAPE_FLIP">Landscape Flip</option>
+          </select>
         </div>
 
         <div className="tool-card">
@@ -254,6 +311,16 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
             <option value="IMAGE">IMAGE</option>
             <option value="VIDEO">VIDEO</option>
           </select>
+          {uploadType === 'IMAGE' ? (
+            <>
+              <label>Duration (seconds)</label>
+              <input
+                value={duration}
+                placeholder="10"
+                onChange={event => setDuration(event.target.value.replace(/\D/g, ''))}
+              />
+            </>
+          ) : null}
           <label>Media File</label>
           <input type="file" accept={uploadType === 'IMAGE' ? 'image/*' : 'video/*'} onChange={handleUploadMedia} />
         </div>
@@ -264,7 +331,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
         {items.length === 0 ? <p className="content-list__empty">No playlist items yet. Add webpage or media content to start playback.</p> : null}
         {items.map((item, index) => (
           <article key={item.id} className="content-row">
-            <div>
+            <div className="content-row__info">
               <h4>
                 #{index + 1} {item.type}
               </h4>
@@ -277,6 +344,9 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
               <button type="button" onClick={() => moveItem(index, 'DOWN')}>
                 Down
               </button>
+              <button type="button" onClick={() => handleStartEdit(item)}>
+                Edit
+              </button>
               <button type="button" onClick={() => handleDelete(item.id)}>
                 Delete
               </button>
@@ -284,6 +354,36 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
           </article>
         ))}
       </section>
+
+      <Modal isOpen={editingItem !== null} title="Edit Content" onClose={handleCancelEdit}>
+        {editingItem?.type === 'IMAGE' ? (
+          <>
+            <label>Duration (seconds)</label>
+            <input
+              value={editDurationValue}
+              placeholder="10"
+              onChange={event => setEditDurationValue(event.target.value.replace(/\D/g, ''))}
+            />
+            <div className="modal-actions">
+              <button type="button" onClick={handleCancelEdit}>
+                Cancel
+              </button>
+              <button type="button" className="primary" onClick={handleSaveEdit}>
+                Save
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p>Videos play until they end and have no duration setting.</p>
+            <div className="modal-actions">
+              <button type="button" onClick={handleCancelEdit}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
     </section>
   );
 };

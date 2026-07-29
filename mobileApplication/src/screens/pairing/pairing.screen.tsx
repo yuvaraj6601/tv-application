@@ -6,7 +6,7 @@ import { AppStackParamList } from '../../app/app.navigator';
 import { RootState } from '../../store/store';
 import { tvSocketService } from '../../services/socket.service';
 import { signageStore } from '../../store/store';
-import { setPaired } from '../../store/slices/device.slice';
+import { setOrientation, setPaired } from '../../store/slices/device.slice';
 import { setPlaylist } from '../../store/slices/playlist.slice';
 import { syncService } from '../../services/sync.service';
 import { heartbeatService } from '../../services/heartbeat.service';
@@ -31,8 +31,9 @@ export const PairingScreen = ({ navigation }: Props): React.JSX.Element => {
     socket.on('devicePaired', () => {
       syncService
         .synchronizeDeviceContent(deviceId)
-        .then(items => {
+        .then(({ items, orientation }) => {
           signageStore.dispatch(setPlaylist(items));
+          signageStore.dispatch(setOrientation(orientation));
           localPlaylistService.save(items);
           signageStore.dispatch(setPaired(true));
           navigation.replace('Player');
@@ -58,24 +59,24 @@ export const PairingScreen = ({ navigation }: Props): React.JSX.Element => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center'
   },
   title: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 24,
     marginBottom: 20
   },
   code: {
-    color: '#00ff99',
+    color: '#16a34a',
     fontSize: 84,
     letterSpacing: 8,
     fontWeight: '700'
   },
   subtitle: {
     marginTop: 16,
-    color: '#cccccc',
+    color: '#475569',
     fontSize: 18
   }
 });

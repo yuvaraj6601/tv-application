@@ -1,5 +1,5 @@
 import { mobileAxios } from '../utils/axios.utils';
-import { PlaylistItemModel } from '../types/app.types';
+import { DeviceOrientation, PlaylistItemModel } from '../types/app.types';
 import { fileCacheUtils } from '../utils/file.cache.utils';
 
 interface RemoteContentItem {
@@ -14,11 +14,21 @@ interface RemoteContentItem {
   sortOrder: number;
 }
 
-export const syncService = {
-  synchronizeDeviceContent: async (deviceId: string): Promise<PlaylistItemModel[]> => {
-    const response = await mobileAxios.get<{ status: boolean; data: RemoteContentItem[] }>(`/api/v1/device/${deviceId}/sync`);
+interface RemoteSyncData {
+  content: RemoteContentItem[];
+  orientation: DeviceOrientation;
+}
 
-    const payload = response.data.data.map<PlaylistItemModel>(item => ({
+export interface SynchronizedDeviceContent {
+  items: PlaylistItemModel[];
+  orientation: DeviceOrientation;
+}
+
+export const syncService = {
+  synchronizeDeviceContent: async (deviceId: string): Promise<SynchronizedDeviceContent> => {
+    const response = await mobileAxios.get<{ status: boolean; data: RemoteSyncData }>(`/api/v1/device/${deviceId}/sync`);
+
+    const payload = response.data.data.content.map<PlaylistItemModel>(item => ({
       id: item.id,
       type: item.type,
       url: item.url,
@@ -30,6 +40,7 @@ export const syncService = {
       order: item.sortOrder
     }));
 
-    return fileCacheUtils.replaceAllContent(payload);
+    const items = await fileCacheUtils.replaceAllContent(payload);
+    return { items, orientation: response.data.data.orientation };
   }
 };

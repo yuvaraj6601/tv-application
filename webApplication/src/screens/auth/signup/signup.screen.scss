@@ -1,4 +1,4 @@
-.login-screen {
+.signup-screen {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -51,7 +51,7 @@
       margin: 0;
     }
 
-    .login-screen__decoy {
+    .signup-screen__decoy {
       position: absolute;
       width: 1px;
       height: 1px;
@@ -62,7 +62,7 @@
       pointer-events: none;
     }
 
-    .login-screen__error {
+    .signup-screen__error {
       color: #f97066;
       font-size: 13px;
       margin: 0;
@@ -109,7 +109,7 @@
       transform: none;
     }
 
-    .login-screen__signup-hint {
+    .signup-screen__login-hint {
       margin: 2px 0 0;
       color: #94a3b8;
       font-size: 13px;
@@ -129,7 +129,7 @@
 }
 
 @media (max-width: 980px) {
-  .login-screen {
+  .signup-screen {
     flex-direction: column;
     align-items: stretch;
 
@@ -140,7 +140,7 @@
 }
 
 @media (max-width: 480px) {
-  .login-screen {
+  .signup-screen {
     padding: 16px;
     gap: 16px;
 

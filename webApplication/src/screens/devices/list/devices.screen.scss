@@ -44,7 +44,7 @@
   &__content {
     margin-top: 18px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
     gap: 14px;
   }
 
@@ -62,7 +62,7 @@
 .devices-summary {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
   gap: 10px;
 
   &__card {
@@ -185,6 +185,25 @@
 
     &__header {
       flex-direction: column;
+    }
+  }
+}
+
+@media (max-width: 560px) {
+  .devices-screen {
+    padding: 12px;
+
+    &__heading h1 {
+      font-size: 24px;
+    }
+  }
+
+  .pairing-panel {
+    width: 100%;
+
+    input {
+      min-width: 0;
+      flex: 1 1 auto;
     }
   }
 }

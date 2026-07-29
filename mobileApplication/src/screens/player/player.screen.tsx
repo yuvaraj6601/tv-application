@@ -6,10 +6,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import NetInfo from '@react-native-community/netinfo';
 import { RootState } from '../../store/store';
 import { moveNext, setPlaylist } from '../../store/slices/playlist.slice';
+import { setOrientation } from '../../store/slices/device.slice';
 import { tvSocketService } from '../../services/socket.service';
 import { syncService } from '../../services/sync.service';
 import { heartbeatService } from '../../services/heartbeat.service';
 import { localPlaylistService } from '../../services/local-playlist.service';
+import { DeviceOrientation } from '../../types/app.types';
 
 export const PlayerScreen = (): React.JSX.Element => {
   const dispatch = useDispatch();
@@ -55,14 +57,21 @@ export const PlayerScreen = (): React.JSX.Element => {
       syncInProgressRef.current = true;
       syncService
         .synchronizeDeviceContent(deviceId)
-        .then(nextItems => {
+        .then(({ items: nextItems, orientation }) => {
           dispatch(setPlaylist(nextItems));
+          dispatch(setOrientation(orientation));
           localPlaylistService.save(nextItems);
         })
         .catch(() => undefined)
         .finally(() => {
           syncInProgressRef.current = false;
         });
+    };
+
+    const applyOrientation = (payload: { deviceId: string; orientation: DeviceOrientation }): void => {
+      if (payload.deviceId === deviceId) {
+        dispatch(setOrientation(payload.orientation));
+      }
     };
 
     const unsubscribeNetwork = NetInfo.addEventListener(networkState => {
@@ -79,11 +88,13 @@ export const PlayerScreen = (): React.JSX.Element => {
     socket.on('connect', resync);
     socket.on('contentUpdated', resync);
     socket.on('playlistUpdated', resync);
+    socket.on('orientationUpdated', applyOrientation);
 
     return () => {
       socket.off('connect', resync);
       socket.off('contentUpdated', resync);
       socket.off('playlistUpdated', resync);
+      socket.off('orientationUpdated', applyOrientation);
       stopHeartbeat();
       unsubscribeNetwork();
     };
@@ -123,16 +134,16 @@ export const PlayerScreen = (): React.JSX.Element => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center'
   },
   media: {
     flex: 1,
-    backgroundColor: '#000000'
+    backgroundColor: '#ffffff'
   },
   placeholder: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 24
   }
 });
