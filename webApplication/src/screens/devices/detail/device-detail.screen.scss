@@ -37,7 +37,8 @@
   }
 
   &__identity {
-    min-width: 260px;
+    width: min(320px, 100%);
+    min-width: 0;
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
@@ -47,6 +48,7 @@
       margin: 0 0 6px;
       font-size: 13px;
       color: #475569;
+      overflow-wrap: break-word;
     }
   }
 
@@ -64,7 +66,7 @@
 .device-health-panel {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
   gap: 10px;
 
   &__item {
@@ -92,7 +94,7 @@
 
 .content-tools {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 12px;
   margin-top: 14px;
 }
@@ -130,10 +132,10 @@
   }
 
   input[type='file'] {
+    height: auto;
     display: flex;
     align-items: center;
-    padding: 4px 10px;
-    // line-height: 1.2;
+    padding: 6px 10px;
   }
 
   input[type='file']::file-selector-button {
@@ -145,8 +147,6 @@
     padding: 0 10px;
     margin-right: 10px;
     cursor: pointer;
-    
-
   }
 
   button {
@@ -184,6 +184,7 @@
   border: 1px solid #e2e8f0;
   padding: 14px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   align-items: center;
@@ -191,6 +192,11 @@
   h4,
   p {
     margin: 0;
+  }
+
+  &__info {
+    min-width: 0;
+    max-width: 100%;
   }
 
   p {
@@ -203,6 +209,7 @@
 
   &__actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
 
     button {
@@ -222,6 +229,25 @@
 
     &__header {
       flex-direction: column;
+    }
+  }
+}
+
+@media (max-width: 560px) {
+  .device-detail-screen {
+    padding: 12px;
+
+    &__header h1 {
+      font-size: 24px;
+    }
+  }
+
+  .content-row {
+    flex-direction: column;
+    align-items: stretch;
+
+    &__actions {
+      justify-content: flex-start;
     }
   }
 }

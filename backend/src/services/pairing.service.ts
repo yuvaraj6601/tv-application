@@ -1,3 +1,4 @@
+import { DeviceOrientation } from '@prisma/client';
 import { prisma } from '../db';
 import { jwtHelper } from '../helpers/jwt.helper';
 
@@ -9,13 +10,14 @@ const generatePairingCode = (): string => {
 export const pairingService = {
   registerDevice: async (
     payload: { deviceName: string; deviceUniqueId: string }
-  ): Promise<{ deviceId: string; pairingCode: string | null; deviceToken: string; isPaired: boolean }> => {
+  ): Promise<{ deviceId: string; pairingCode: string | null; deviceToken: string; isPaired: boolean; orientation: DeviceOrientation }> => {
     const existingDevice = await prisma.device.findUnique({
       where: { deviceUniqueId: payload.deviceUniqueId }
     });
 
     let deviceId = existingDevice?.id || '';
     let isPaired = existingDevice?.isPaired || false;
+    let orientation = existingDevice?.orientation || 'PORTRAIT';
     let nextPairingCode: string | null = null;
 
     if (!existingDevice) {
@@ -32,6 +34,7 @@ export const pairingService = {
       });
       deviceId = newDevice.id;
       isPaired = newDevice.isPaired;
+      orientation = newDevice.orientation;
       nextPairingCode = pairingCode;
     } else if (!existingDevice.isPaired) {
       const pairingCode = generatePairingCode();
@@ -46,6 +49,7 @@ export const pairingService = {
       });
       deviceId = updatedDevice.id;
       isPaired = updatedDevice.isPaired;
+      orientation = updatedDevice.orientation;
       nextPairingCode = pairingCode;
     } else {
       await prisma.device.update({
@@ -74,7 +78,8 @@ export const pairingService = {
       deviceId,
       pairingCode: nextPairingCode,
       deviceToken,
-      isPaired
+      isPaired,
+      orientation
     };
   },
   pairDevice: async (payload: { pairingCode: string; userId: string }): Promise<string> => {

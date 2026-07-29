@@ -80,17 +80,17 @@ export const OfflineScreen = ({ navigation }: Props): React.JSX.Element => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center'
   },
   title: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 28,
     marginBottom: 8
   },
   subtitle: {
-    color: '#bfbfbf',
+    color: '#475569',
     fontSize: 18,
     marginBottom: 32
   },
@@ -116,10 +116,10 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   textOnline: {
-    color: '#22c55e'
+    color: '#16a34a'
   },
   textOffline: {
-    color: '#ef4444'
+    color: '#dc2626'
   },
   button: {
     backgroundColor: '#1d4ed8',

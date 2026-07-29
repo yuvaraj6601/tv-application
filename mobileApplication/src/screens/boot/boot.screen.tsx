@@ -6,7 +6,7 @@ import { AppStackParamList } from '../../app/app.navigator';
 import { pairingService } from '../../services/pairing.service';
 import { signageStore } from '../../store/store';
 import { setBootstrapped, setOnlineStatus } from '../../store/slices/app.slice';
-import { setDeviceIdentity, setDeviceToken, setPairingCode, setPaired } from '../../store/slices/device.slice';
+import { setDeviceIdentity, setDeviceToken, setOrientation, setPairingCode, setPaired } from '../../store/slices/device.slice';
 import { syncService } from '../../services/sync.service';
 import { setPlaylist } from '../../store/slices/playlist.slice';
 import { deviceIdentifierService } from '../../services/device-identifier.service';
@@ -51,12 +51,14 @@ export const BootScreen = ({ navigation }: Props): React.JSX.Element => {
       signageStore.dispatch(setPairingCode(registerResponse.pairingCode));
       signageStore.dispatch(setDeviceToken(registerResponse.deviceToken));
       signageStore.dispatch(setPaired(registerResponse.isPaired));
+      signageStore.dispatch(setOrientation(registerResponse.orientation));
       signageStore.dispatch(setBootstrapped(true));
 
       if (registerResponse.isPaired) {
-        const contentItems = await syncService.synchronizeDeviceContent(registerResponse.deviceId);
-        signageStore.dispatch(setPlaylist(contentItems));
-        localPlaylistService.save(contentItems);
+        const { items, orientation } = await syncService.synchronizeDeviceContent(registerResponse.deviceId);
+        signageStore.dispatch(setPlaylist(items));
+        signageStore.dispatch(setOrientation(orientation));
+        localPlaylistService.save(items);
         navigation.replace('Player');
         return;
       }
@@ -79,7 +81,7 @@ export const BootScreen = ({ navigation }: Props): React.JSX.Element => {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#ffffff" />
+      <ActivityIndicator size="large" color="#0f172a" />
       <Text style={styles.text}>Initializing signage player...</Text>
     </View>
   );
@@ -88,13 +90,13 @@ export const BootScreen = ({ navigation }: Props): React.JSX.Element => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center'
   },
   text: {
     marginTop: 12,
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 20
   }
 });

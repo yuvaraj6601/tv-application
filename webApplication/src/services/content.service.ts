@@ -38,6 +38,11 @@ export const contentService = {
     body.append('file', payload.file);
     await dashboardAxios.post(`/api/v1/device/${deviceId}/content`, body);
   },
+  updateDuration: async (deviceId: string, contentId: string, duration: number): Promise<void> => {
+    const body = new FormData();
+    body.append('duration', String(duration));
+    await dashboardAxios.patch(`/api/v1/device/${deviceId}/content/${contentId}`, body);
+  },
   remove: async (deviceId: string, contentId: string): Promise<void> => {
     await dashboardAxios.delete(`/api/v1/device/${deviceId}/content/${contentId}`);
   },

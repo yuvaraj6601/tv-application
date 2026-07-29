@@ -16,3 +16,7 @@ export const deviceParamValidation = Joi.object({
 export const deviceHeartbeatValidation = Joi.object({
   appVersion: Joi.string().max(50).optional()
 });
+
+export const deviceOrientationUpdateValidation = Joi.object({
+  orientation: Joi.string().valid('PORTRAIT', 'LANDSCAPE', 'PORTRAIT_FLIP', 'LANDSCAPE_FLIP').required()
+});

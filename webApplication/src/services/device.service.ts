@@ -1,6 +1,8 @@
 import { dashboardAxios } from '../utils/axios.utils';
 import { DeviceSummary } from '../store/slices/devices.slice';
 
+export type DeviceOrientation = 'PORTRAIT' | 'LANDSCAPE' | 'PORTRAIT_FLIP' | 'LANDSCAPE_FLIP';
+
 interface ApiResponseModel<T> {
   status: boolean;
   data: T;
@@ -17,6 +19,7 @@ export interface DeviceDetailModel {
   lastHeartbeatAt: string | null;
   appVersion: string | null;
   lastHeartbeatIpAddress: string | null;
+  orientation: DeviceOrientation;
 }
 
 export const deviceService = {
@@ -32,5 +35,8 @@ export const deviceService = {
     await dashboardAxios.post('/api/v1/device/pair/confirm', {
       pairingCode
     });
+  },
+  updateOrientation: async (deviceId: string, orientation: DeviceOrientation): Promise<void> => {
+    await dashboardAxios.patch(`/api/v1/device/${deviceId}/orientation`, { orientation });
   }
 };

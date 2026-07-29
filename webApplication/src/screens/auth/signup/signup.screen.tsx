@@ -7,15 +7,16 @@ import { authService } from '../../../services/auth.service';
 import { setSession } from '../../../store/slices/auth.slice';
 import { RootState } from '../../../store/store';
 import { PasswordInput } from '../../../components/common/password-input/password-input.component';
-import './login.screen.scss';
+import './signup.screen.scss';
 
-interface LoginFormModel {
+interface SignupFormModel {
   email: string;
   password: string;
+  confirmPassword: string;
 }
 
-export const LoginScreen = (): React.JSX.Element => {
-  const { register, handleSubmit, formState, reset } = useForm<LoginFormModel>();
+export const SignupScreen = (): React.JSX.Element => {
+  const { register, handleSubmit, watch, formState, reset } = useForm<SignupFormModel>();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const token = useSelector((state: RootState) => state.auth.token);
@@ -23,7 +24,7 @@ export const LoginScreen = (): React.JSX.Element => {
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
 
   React.useEffect(() => {
-    reset({ email: '', password: '' });
+    reset({ email: '', password: '', confirmPassword: '' });
   }, [reset]);
 
   const resolveErrorMessage = (error: unknown): string => {
@@ -38,14 +39,14 @@ export const LoginScreen = (): React.JSX.Element => {
       }
     }
 
-    return 'Invalid credentials or server unavailable.';
+    return 'Could not create your account. Please try again.';
   };
 
-  const onSubmit = async (form: LoginFormModel): Promise<void> => {
+  const onSubmit = async (form: SignupFormModel): Promise<void> => {
     setIsSubmitting(true);
     setErrorMessage('');
     try {
-      const response = await authService.login(form);
+      const response = await authService.register(form);
       dispatch(setSession(response));
       navigate('/devices');
     } catch (error) {
@@ -62,28 +63,40 @@ export const LoginScreen = (): React.JSX.Element => {
   }, [token, navigate]);
 
   return (
-    <section className="login-screen">
-      <div className="login-screen__brand-panel">
-        <p className="login-screen__eyebrow">Android TV Digital Signage</p>
+    <section className="signup-screen">
+      <div className="signup-screen__brand-panel">
+        <p className="signup-screen__eyebrow">Android TV Digital Signage</p>
         <h1>Admin Control Center</h1>
-        <p className="login-screen__description">
+        <p className="signup-screen__description">
           Manage device pairing, playlist scheduling, media uploads, and realtime status from one dashboard.
         </p>
       </div>
-      <form className="login-screen__form" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
-        <h2>Sign in</h2>
+      <form className="signup-screen__form" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+        <h2>Create your account</h2>
         {/* Decoy fields absorb the browser's password-manager autofill so it doesn't land in the real inputs below */}
-        <input type="text" name="username" className="login-screen__decoy" tabIndex={-1} aria-hidden="true" autoComplete="username" />
-        <input type="password" name="password" className="login-screen__decoy" tabIndex={-1} aria-hidden="true" autoComplete="current-password" />
+        <input type="text" name="username" className="signup-screen__decoy" tabIndex={-1} aria-hidden="true" autoComplete="username" />
+        <input type="password" name="password" className="signup-screen__decoy" tabIndex={-1} aria-hidden="true" autoComplete="current-password" />
         <input {...register('email', { required: true })} placeholder="Email" autoComplete="off" />
-        <PasswordInput {...register('password', { required: true })} placeholder="Password" autoComplete="off" />
-        {formState.errors.email || formState.errors.password ? <p className="login-screen__error">Email and password are required.</p> : null}
-        {errorMessage ? <p className="login-screen__error">{errorMessage}</p> : null}
+        <PasswordInput {...register('password', { required: true, minLength: 6 })} placeholder="Password" autoComplete="new-password" />
+        <input
+          {...register('confirmPassword', {
+            required: true,
+            validate: value => value === watch('password') || 'Passwords do not match'
+          })}
+          placeholder="Re-enter password"
+          type="password"
+          autoComplete="new-password"
+        />
+        {formState.errors.email || formState.errors.password ? (
+          <p className="signup-screen__error">Email and a password of at least 6 characters are required.</p>
+        ) : null}
+        {formState.errors.confirmPassword ? <p className="signup-screen__error">{formState.errors.confirmPassword.message}</p> : null}
+        {errorMessage ? <p className="signup-screen__error">{errorMessage}</p> : null}
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Logging in...' : 'Login'}
+          {isSubmitting ? 'Creating account...' : 'Sign up'}
         </button>
-        <p className="login-screen__signup-hint">
-          Don&apos;t have an account? <Link to="/signup">Sign up</Link>
+        <p className="signup-screen__login-hint">
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </form>
     </section>

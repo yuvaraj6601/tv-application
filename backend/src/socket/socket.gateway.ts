@@ -1,4 +1,5 @@
 import { Server } from 'socket.io';
+import { DeviceOrientation } from '@prisma/client';
 
 let socketServer: Server | null = null;
 
@@ -21,5 +22,9 @@ export const socketGateway = {
   },
   emitDeviceStatus: (deviceId: string, status: 'ONLINE' | 'OFFLINE'): void => {
     socketServer?.to('admin:devices').emit('deviceStatusChanged', { deviceId, status });
+  },
+  emitOrientationUpdated: (deviceId: string, orientation: DeviceOrientation): void => {
+    socketServer?.to(`device:${deviceId}`).emit('orientationUpdated', { deviceId, orientation });
+    socketServer?.to('admin:devices').emit('orientationUpdated', { deviceId, orientation });
   }
 };

@@ -1,11 +1,12 @@
 import express from 'express';
 import { deviceController } from '../../controllers/device.controller';
-import { authMiddleware, requireDeviceOwnership, requireRole } from '../../middleware/auth.middleware';
+import { authMiddleware, requireAdminDeviceAccess, requireDeviceOwnership, requireRole } from '../../middleware/auth.middleware';
 import { contentRoute } from './content.route';
 import { validationMiddleware } from '../../middleware/validation.middleware';
 import { rateLimitMiddleware } from '../../middleware/rate-limit.middleware';
 import {
   deviceHeartbeatValidation,
+  deviceOrientationUpdateValidation,
   devicePairValidation,
   deviceParamValidation,
   deviceRegisterValidation
@@ -59,4 +60,13 @@ deviceRoute.get(
   deviceController.syncContent
 );
 deviceRoute.get('/:deviceId', authMiddleware, requireRole(['ADMIN']), validationMiddleware(deviceParamValidation, 'params'), deviceController.getById);
+deviceRoute.patch(
+  '/:deviceId/orientation',
+  authMiddleware,
+  requireRole(['ADMIN']),
+  validationMiddleware(deviceParamValidation, 'params'),
+  validationMiddleware(deviceOrientationUpdateValidation),
+  requireAdminDeviceAccess(),
+  deviceController.updateOrientation
+);
 deviceRoute.use('/:deviceId/content', contentRoute);

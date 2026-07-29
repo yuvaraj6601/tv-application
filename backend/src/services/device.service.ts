@@ -1,3 +1,4 @@
+import { DeviceOrientation } from '@prisma/client';
 import { prisma } from '../db';
 import { socketGateway } from '../socket/socket.gateway';
 
@@ -15,6 +16,7 @@ export const deviceService = {
         isPaired: true,
         status: true,
         lastSeen: true,
+        orientation: true,
         _count: {
           select: {
             contents: true
@@ -38,6 +40,7 @@ export const deviceService = {
       isPaired: device.isPaired,
       status: device.status,
       lastSeen: device.lastSeen,
+      orientation: device.orientation,
       contentCount: device._count.contents,
       lastHeartbeatAt: device.heartbeats[0]?.seenAt || null,
       appVersion: device.heartbeats[0]?.appVersion || null
@@ -56,6 +59,7 @@ export const deviceService = {
         isPaired: true,
         status: true,
         lastSeen: true,
+        orientation: true,
         _count: {
           select: {
             contents: true
@@ -84,6 +88,7 @@ export const deviceService = {
       isPaired: device.isPaired,
       status: device.status,
       lastSeen: device.lastSeen,
+      orientation: device.orientation,
       contentCount: device._count.contents,
       lastHeartbeatAt: device.heartbeats[0]?.seenAt || null,
       appVersion: device.heartbeats[0]?.appVersion || null,
@@ -108,5 +113,32 @@ export const deviceService = {
     });
 
     socketGateway.emitDeviceStatus(payload.deviceId, 'ONLINE');
+  },
+  updateOrientation: async (payload: { userId: string; deviceId: string; orientation: DeviceOrientation }): Promise<DeviceOrientation | null> => {
+    const device = await prisma.device.findFirst({
+      where: { id: payload.deviceId, userId: payload.userId },
+      select: { id: true }
+    });
+
+    if (!device) {
+      return null;
+    }
+
+    const updated = await prisma.device.update({
+      where: { id: payload.deviceId },
+      data: { orientation: payload.orientation },
+      select: { orientation: true }
+    });
+
+    socketGateway.emitOrientationUpdated(payload.deviceId, updated.orientation);
+    return updated.orientation;
+  },
+  getOrientation: async (deviceId: string): Promise<DeviceOrientation> => {
+    const device = await prisma.device.findUnique({
+      where: { id: deviceId },
+      select: { orientation: true }
+    });
+
+    return device?.orientation || 'PORTRAIT';
   }
 };

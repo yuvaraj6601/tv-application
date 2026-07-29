@@ -92,7 +92,9 @@ export const deviceController = {
     });
   },
   syncContent: async (req: Request, res: Response): Promise<void> => {
-    const content = await contentService.getByDeviceId(getParamValue(req.params.deviceId));
+    const deviceId = getParamValue(req.params.deviceId);
+    const content = await contentService.getByDeviceId(deviceId);
+    const orientation = await deviceService.getOrientation(deviceId);
     const baseUrl = `${req.protocol}://${req.get('host') || 'localhost:8080'}`;
     const normalizedContent = content.map(item => {
       if (!item.url || item.url.startsWith('http://') || item.url.startsWith('https://')) {
@@ -108,7 +110,33 @@ export const deviceController = {
 
     res.status(200).json({
       status: true,
-      data: normalizedContent
+      data: {
+        content: normalizedContent,
+        orientation
+      }
+    });
+  },
+  updateOrientation: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    if (!req.auth) {
+      res.status(401).json({ status: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const orientation = await deviceService.updateOrientation({
+      userId: req.auth.sub,
+      deviceId: getParamValue(req.params.deviceId),
+      orientation: req.body.orientation
+    });
+
+    if (!orientation) {
+      res.status(404).json({ status: false, message: 'Device not found' });
+      return;
+    }
+
+    res.status(200).json({
+      status: true,
+      message: 'Device orientation updated successfully',
+      data: { orientation }
     });
   }
 };
