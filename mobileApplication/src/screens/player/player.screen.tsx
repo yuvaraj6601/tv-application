@@ -121,15 +121,18 @@ export const PlayerScreen = (): React.JSX.Element => {
   }
 
   if (currentItem.type === 'VIDEO') {
+    const isSingleItemPlaylist = items.length === 1;
     return (
       <Video
         source={{ uri: `file://${currentItem.localPath}` }}
         style={styles.media}
         resizeMode="contain"
-        repeat={false}
+        repeat={isSingleItemPlaylist}
         controls={false}
         onEnd={() => {
-          dispatch(moveNext());
+          if (!isSingleItemPlaylist) {
+            dispatch(moveNext());
+          }
         }}
       />
     );
