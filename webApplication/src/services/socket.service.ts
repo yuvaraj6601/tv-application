@@ -12,7 +12,9 @@ class DashboardSocketService {
       transports: ['websocket'],
       auth: { token }
     });
-    this.socket.emit('joinAdminRoom');
+    this.socket.on('connect', () => {
+      this.socket?.emit('joinAdminRoom');
+    });
     return this.socket;
   }
 

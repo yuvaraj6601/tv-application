@@ -46,7 +46,6 @@ export const PlayerScreen = (): React.JSX.Element => {
     }
 
     const socket = tvSocketService.connect(deviceToken);
-    socket.emit('joinDeviceRoom', deviceId);
     const stopHeartbeat = heartbeatService.start(deviceId);
 
     const resync = (): void => {
@@ -74,6 +73,11 @@ export const PlayerScreen = (): React.JSX.Element => {
       }
     };
 
+    const handleSocketConnect = (): void => {
+      socket.emit('joinDeviceRoom', deviceId);
+      resync();
+    };
+
     const unsubscribeNetwork = NetInfo.addEventListener(networkState => {
       const isOnline = networkState.isConnected === true &&
         (networkState.isInternetReachable === null || networkState.isInternetReachable === true);
@@ -85,13 +89,17 @@ export const PlayerScreen = (): React.JSX.Element => {
       }
     });
 
-    socket.on('connect', resync);
+    socket.on('connect', handleSocketConnect);
     socket.on('contentUpdated', resync);
     socket.on('playlistUpdated', resync);
     socket.on('orientationUpdated', applyOrientation);
 
+    if (socket.connected) {
+      handleSocketConnect();
+    }
+
     return () => {
-      socket.off('connect', resync);
+      socket.off('connect', handleSocketConnect);
       socket.off('contentUpdated', resync);
       socket.off('playlistUpdated', resync);
       socket.off('orientationUpdated', applyOrientation);

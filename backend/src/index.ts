@@ -88,6 +88,23 @@ io.on('connection', socket => {
     });
     io.to(`admin:devices`).emit('deviceHeartbeat', { deviceId, appVersion: payload.appVersion });
   });
+
+  socket.on('disconnect', async () => {
+    const auth = socket.data.auth as { sub: string; role: 'ADMIN' | 'DEVICE' } | undefined;
+    if (!auth || auth.role !== 'DEVICE') {
+      return;
+    }
+
+    try {
+      await prisma.device.update({
+        where: { id: auth.sub },
+        data: { status: 'OFFLINE' }
+      });
+      io.to('admin:devices').emit('deviceStatusChanged', { deviceId: auth.sub, status: 'OFFLINE' });
+    } catch (error) {
+      console.error('[Socket] Failed to mark device offline on disconnect:', error);
+    }
+  });
 });
 
 const port = Number(process.env.PORT || 8080);
