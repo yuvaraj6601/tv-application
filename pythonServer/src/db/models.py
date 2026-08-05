@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import DateTime, Date, ForeignKey, Integer, LargeBinary, String, UniqueConstraint, func
+from sqlalchemy import DateTime, Date, ForeignKey, Index, Integer, LargeBinary, String, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -22,6 +22,7 @@ class Visitor(Base):
 
 class Session(Base):
     __tablename__ = "sessions"
+    __table_args__ = (Index("ix_sessions_pi_id_started_at", "pi_id", "started_at"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     pi_id: Mapped[str] = mapped_column(String(17), index=True)

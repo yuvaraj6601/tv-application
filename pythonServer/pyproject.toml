@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Raspberry Pi people-analytics capture and sync service"
 requires-python = ">=3.11"
 dependencies = [
-    "sqlalchemy>=2.0",
+    "sqlalchemy[asyncio]>=2.0",
     "aiomysql",
+    "pymysql",
+    "alembic",
     "pydantic-settings",
     "python-dotenv",
     "face_recognition",
@@ -19,6 +21,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-asyncio",
+    "aiosqlite",
     "mypy",
 ]
 

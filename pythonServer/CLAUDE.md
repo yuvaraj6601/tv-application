@@ -7,6 +7,7 @@
 - DB: SQLAlchemy 2.0 (async) + shared central MySQL DB (`pythonServer` DB, separate from the Node backend's `spatiabox_db`)
 - Runs on each Raspberry Pi; locally the same code runs against the developer's own webcam
 - Package management: `uv` + `pyproject.toml` + `uv.lock`
+- Migrations: Alembic (`alembic/`, `alembic.ini`) — sync `pymysql` driver for migrations, async `aiomysql` for the running service
 - See [../docs/PLAN.md](../docs/PLAN.md) for full architecture, DB schema, and build order
 
 ## Architecture
@@ -18,7 +19,7 @@ src/
   recognition/        face_matcher.py, user_registry.py (pending)
   session/            session_tracker.py
   storage/            daily_writer.py, folder_rotator.py, db_syncer.py (pending)
-  db/                 models.py, connection.py
+  db/                 models.py, connection.py, repository.py
   config/             settings.py
   main.py             entry point
 
@@ -29,8 +30,10 @@ src/capture/face_detector.py       — detect_faces(frame) -> list[FaceDetection
 src/capture/camera_capture.py      — CameraCapture: open()/read_frame()/close() wrapping cv2.VideoCapture, raises CameraCaptureError on failure
 src/storage/daily_writer.py        — write_session(session, data_dir, day=None) -> Path; appends a FinalizedSession as one JSON line under data/temporaryData/<day>/sessions.jsonl
 src/storage/folder_rotator.py      — rotate_day(data_dir, day) -> Path | None; moves temporaryData/<day> into syncData/<day>, merging file-by-file into an existing partial syncData/<day> if one exists
-src/db/models.py                   — SQLAlchemy models: Visitor, Session, SyncLog (not yet wired to the pipeline — build order item 3)
+src/db/models.py                   — SQLAlchemy models: Visitor, Session (with (pi_id, started_at) index), SyncLog
 src/db/connection.py               — async engine/session factory, connect_db() logs success or exits on failure
+src/db/repository.py               — async DB ops for db_syncer/user_registry: get_known_faces(session, pi_id), upsert_visitor(session, visitor_id, pi_id, embedding, first_seen_at) -> bool (get-or-create), insert_sessions(session, pi_id, sessions), record_sync(session, pi_id, sync_date, rows_synced) (accumulates), get_total_watch_time_seconds, get_rows_synced
+alembic/versions/0001_create_visitors_sessions_sync_log.py — initial migration, matches src/db/models.py exactly
 
 ## Environment Variables
 ENVIRONMENT=local|production
