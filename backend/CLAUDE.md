@@ -68,7 +68,7 @@ JWT only. Two roles: `ADMIN` (web dashboard) and `DEVICE` (TV client).
 { sub: string, role: 'ADMIN' | 'DEVICE' }
 ```
 
-`jwtHelper.sign(payload)` / `jwtHelper.verify(token)` — reads `JWT_ACCESS_SECRET` and `JWT_EXPIRES_IN` from env.
+`jwtHelper.sign(payload)` / `jwtHelper.verify(token)` — reads `JWT_ACCESS_SECRET` from env. Tokens are signed without an expiry (no `expiresIn`) — they remain valid until the secret is rotated.
 
 Middleware:
 - `authMiddleware` — attaches `req.auth` to every request
@@ -107,7 +107,6 @@ Auth is enforced at the `io.use()` middleware level in `src/index.ts` using `jwt
 ```
 PORT=8080
 JWT_ACCESS_SECRET=
-JWT_EXPIRES_IN=1d
 SOCKET_CORS_ORIGIN=
 DATABASE_URL=mysql://...
 ```
