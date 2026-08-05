@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv
+.env
+.mypy_cache/
+.pytest_cache/
+data/temporaryData/*
+!data/temporaryData/.gitkeep
+data/syncData/*
+!data/syncData/.gitkeep
+data/processedData/*
+!data/processedData/.gitkeep

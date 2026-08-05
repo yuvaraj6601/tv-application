@@ -1,0 +1,35 @@
+[project]
+name = "tv-application-pythonserver"
+version = "0.1.0"
+description = "Raspberry Pi people-analytics capture and sync service"
+requires-python = ">=3.11"
+dependencies = [
+    "sqlalchemy>=2.0",
+    "aiomysql",
+    "pydantic-settings",
+    "python-dotenv",
+    "face_recognition",
+    "opencv-python",
+    "apscheduler",
+    "getmac",
+    "setuptools<81",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "mypy",
+]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["face_recognition", "cv2"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
