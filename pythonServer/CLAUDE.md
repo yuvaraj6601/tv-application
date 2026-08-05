@@ -11,21 +11,25 @@
 - See [../docs/PLAN.md](../docs/PLAN.md) for full architecture, DB schema, and build order
 
 ## Architecture
-capture -> detect -> match -> session-track -> daily write -> (rotate -> sync, later build order items)
+capture -> detect -> match/register -> session-track -> daily write, with rotate/sync scheduled
+via APScheduler in main.py's run() loop. Wired end to end — see src/main.py.
 
 ## Source structure
 src/
   capture/           camera_capture.py, face_detector.py
-  recognition/        face_matcher.py, user_registry.py (pending)
+  recognition/        face_matcher.py, user_registry.py
   session/            session_tracker.py
   storage/            daily_writer.py, folder_rotator.py, db_syncer.py
   db/                 models.py, connection.py, repository.py
   config/             settings.py
-  main.py             entry point
+  main.py             entry point — full run() loop + resolve_pi_id/process_frame/flush_expired_sessions/rotate_previous_day
+deploy/
+  pythonserver.service  systemd unit — runs `uv run python -m src.main` on boot, restarts on failure
 
 ## Modules (add one line per module as features are built)
 src/session/session_tracker.py     — SessionTracker: record_presence(visitor_id, at), close_expired_sessions(now, absence_timeout_seconds) -> list[FinalizedSession]; in-memory continuous-presence state machine
 src/recognition/face_matcher.py    — match_face(embedding, known_faces, distance_threshold) -> visitor_id | None; KnownFace pydantic model
+src/recognition/user_registry.py   — UserRegistry: identify_or_register(embedding, first_seen_at, distance_threshold, data_dir) -> visitor_id; matches against an in-memory KnownFace cache (seeded from repository.get_known_faces at startup), mints a new UUID + calls daily_writer.write_new_visitor on no match
 src/capture/face_detector.py       — detect_faces(frame) -> list[FaceDetection]; thin wrapper over face_recognition.face_locations/face_encodings
 src/capture/camera_capture.py      — CameraCapture: open()/read_frame()/close() wrapping cv2.VideoCapture, raises CameraCaptureError on failure
 src/storage/daily_writer.py        — write_session(session, data_dir, day=None) -> Path; write_new_visitor(record: NewVisitorRecord, data_dir, day=None) -> Path; append FinalizedSession/NewVisitorRecord as JSON lines under data/temporaryData/<day>/{sessions,visitors}.jsonl
@@ -35,6 +39,7 @@ src/db/models.py                   — SQLAlchemy models: Visitor, Session (with
 src/db/connection.py               — async engine/session factory, connect_db() logs success or exits on failure
 src/db/repository.py               — async DB ops for db_syncer/user_registry: get_known_faces(session, pi_id), upsert_visitor(session, visitor_id, pi_id, embedding, first_seen_at) -> bool (get-or-create), insert_sessions(session, pi_id, sessions), record_sync(session, pi_id, sync_date, rows_synced) (accumulates), get_total_watch_time_seconds, get_rows_synced
 alembic/versions/0001_create_visitors_sessions_sync_log.py — initial migration, matches src/db/models.py exactly
+src/main.py                        — resolve_pi_id(environment, configured_pi_id) (production -> getmac, else configured value); process_frame(frame, registry, tracker, data_dir, distance_threshold, now); flush_expired_sessions(tracker, data_dir, absence_timeout_seconds, now) -> list[FinalizedSession]; rotate_previous_day(data_dir, today) -> Path | None; run() wires all of it plus AsyncIOScheduler jobs for rotation/sync
 
 ## Environment Variables
 ENVIRONMENT=local|production

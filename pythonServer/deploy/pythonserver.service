@@ -1,0 +1,15 @@
+[Unit]
+Description=TV Application pythonServer — Raspberry Pi people-analytics capture service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/pythonServer
+EnvironmentFile=/opt/pythonServer/.env
+ExecStart=/usr/local/bin/uv run python -m src.main
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
