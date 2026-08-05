@@ -17,7 +17,7 @@ src/
   capture/           camera_capture.py, face_detector.py
   recognition/        face_matcher.py, user_registry.py (pending)
   session/            session_tracker.py
-  storage/            daily_writer.py, folder_rotator.py (pending), db_syncer.py (pending)
+  storage/            daily_writer.py, folder_rotator.py, db_syncer.py (pending)
   db/                 models.py, connection.py
   config/             settings.py
   main.py             entry point
@@ -28,6 +28,7 @@ src/recognition/face_matcher.py    — match_face(embedding, known_faces, distan
 src/capture/face_detector.py       — detect_faces(frame) -> list[FaceDetection]; thin wrapper over face_recognition.face_locations/face_encodings
 src/capture/camera_capture.py      — CameraCapture: open()/read_frame()/close() wrapping cv2.VideoCapture, raises CameraCaptureError on failure
 src/storage/daily_writer.py        — write_session(session, data_dir, day=None) -> Path; appends a FinalizedSession as one JSON line under data/temporaryData/<day>/sessions.jsonl
+src/storage/folder_rotator.py      — rotate_day(data_dir, day) -> Path | None; moves temporaryData/<day> into syncData/<day>, merging file-by-file into an existing partial syncData/<day> if one exists
 src/db/models.py                   — SQLAlchemy models: Visitor, Session, SyncLog (not yet wired to the pipeline — build order item 3)
 src/db/connection.py               — async engine/session factory, connect_db() logs success or exits on failure
 
