@@ -24,7 +24,7 @@ src/
       devices.slice.ts      # list of devices
   utils/
     axios.utils.ts          # dashboardAxios instance with request interceptor
-    functions.utils.ts      # pure helpers: isValidMacAddress, formatWatchTime
+    functions.utils.ts      # pure helpers: isValidMacAddress, isValidPiId (MAC or LOCAL_DEV_PI_ID 'local-dev-test'), formatWatchTime
   constants/
     strings.constant.ts
   imports/

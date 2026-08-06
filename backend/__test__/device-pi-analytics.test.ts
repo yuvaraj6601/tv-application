@@ -16,6 +16,7 @@ let deviceForPatchHappyPath: string;
 let deviceForConflict: string;
 let deviceForBoundaryNoPiId: string;
 let otherAdminDevice: string;
+let deviceForLocalDevPiId: string;
 
 beforeAll(async () => {
   await prisma.device.deleteMany({ where: { deviceUniqueId: { startsWith: UNIQUE_ID_PREFIX } } });
@@ -54,6 +55,11 @@ beforeAll(async () => {
     data: { deviceName: 'Other Admin Device', deviceUniqueId: `${UNIQUE_ID_PREFIX}5`, userId: OTHER_ADMIN_ID }
   });
   otherAdminDevice = otherDevice.id;
+
+  const localDevTarget = await prisma.device.create({
+    data: { deviceName: 'Local Dev Target', deviceUniqueId: `${UNIQUE_ID_PREFIX}6`, userId: ADMIN_ID }
+  });
+  deviceForLocalDevPiId = localDevTarget.id;
 
   await piAnalyticsPrisma.session.deleteMany({ where: { piId: { in: [PI_ID_A, PI_ID_B] } } });
   await piAnalyticsPrisma.visitor.deleteMany({ where: { piId: { in: [PI_ID_A, PI_ID_B] } } });
@@ -164,6 +170,16 @@ describe('PATCH /api/v1/device/:deviceId/pi-id', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ piId: PI_ID_A });
     expect(res.status).toBe(409);
+  });
+
+  it('happy path — accepts the local-dev-test literal (not a MAC address)', async () => {
+    const res = await request(app)
+      .patch(`/api/v1/device/${deviceForLocalDevPiId}/pi-id`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ piId: 'local-dev-test' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.piId).toBe('local-dev-test');
   });
 });
 

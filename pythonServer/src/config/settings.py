@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     capture_interval_seconds: int = 2
     absence_timeout_seconds: int = 30
-    face_match_distance_threshold: float = 0.5
+    face_match_distance_threshold: float = 0.6
 
     data_dir: str = "data"
     rotation_check_interval_seconds: int = 3600

@@ -93,6 +93,8 @@ HTTP codes: 200 success, 201 created, 400 bad request, 401 unauthorized, 403 for
 
 Joi schemas in `src/validations/`. Use `validationMiddleware` from `src/middleware/validation.middleware.ts` to apply schemas in routes.
 
+`devicePiIdUpdateValidation` accepts either a MAC address or the literal `LOCAL_DEV_PI_ID` ('local-dev-test', exported from `device.validation.ts`) — matches the Python server's local-dev `PI_ID` default so a device can be linked to a locally-running dev instance without a real Pi.
+
 ## Key Helpers
 
 - `jwtHelper` — sign / verify JWT tokens
