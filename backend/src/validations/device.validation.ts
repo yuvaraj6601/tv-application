@@ -20,3 +20,9 @@ export const deviceHeartbeatValidation = Joi.object({
 export const deviceOrientationUpdateValidation = Joi.object({
   orientation: Joi.string().valid('PORTRAIT', 'LANDSCAPE', 'PORTRAIT_FLIP', 'LANDSCAPE_FLIP').required()
 });
+
+export const devicePiIdUpdateValidation = Joi.object({
+  piId: Joi.string()
+    .pattern(/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/)
+    .required()
+});

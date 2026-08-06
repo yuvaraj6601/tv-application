@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/pi-analytics-client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("PI_ANALYTICS_DATABASE_URL")
+}
+
+// Read-only from the Node backend. Source of truth and migrations for this
+// database are owned by pythonServer/alembic — this schema mirrors
+// pythonServer/src/db/models.py exactly.
+
+model Visitor {
+  id            String   @id @db.Char(36)
+  piId          String   @map("pi_id") @db.VarChar(17)
+  faceEmbedding Bytes    @map("face_embedding")
+  firstSeenAt   DateTime @map("first_seen_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([piId, id])
+  @@index([piId])
+  @@map("visitors")
+}
+
+model Session {
+  id              String   @id @db.Char(36)
+  piId            String   @map("pi_id") @db.VarChar(17)
+  visitorId       String   @map("visitor_id") @db.Char(36)
+  startedAt       DateTime @map("started_at")
+  endedAt         DateTime @map("ended_at")
+  durationSeconds Int      @map("duration_seconds")
+  syncedAt        DateTime @default(now()) @map("synced_at")
+
+  @@index([piId])
+  @@index([visitorId])
+  @@index([piId, startedAt])
+  @@map("sessions")
+}
+
+model SyncLog {
+  id         String   @id @db.Char(36)
+  piId       String   @map("pi_id") @db.VarChar(17)
+  syncDate   DateTime @map("sync_date") @db.Date
+  rowsSynced Int      @map("rows_synced")
+  syncedAt   DateTime @default(now()) @map("synced_at")
+
+  @@unique([piId, syncDate])
+  @@map("sync_log")
+}

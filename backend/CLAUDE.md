@@ -12,7 +12,8 @@ route → controller → service → database (Prisma)
 src/
   index.ts              # entry point — HTTP server + Socket.IO + schedulers
   app.ts                # Express app — middleware + routes
-  db.ts                 # Prisma singleton (prisma client)
+  db.ts                 # Prisma singleton (prisma client) — main spatiabox_db
+  db-pi-analytics.ts    # Prisma singleton (piAnalyticsPrisma) — read-only pythonServer DB, generated client at src/generated/pi-analytics-client (gitignored)
   routes/v1/
     router.ts           # mounts auth, device, content routes
     auth.route.ts
@@ -23,11 +24,12 @@ src/
     device.controller.ts
     content.controller.ts
   services/
-    device.service.ts
+    device.service.ts       # includes updatePiId(userId, deviceId, piId) -> string | null
     content.service.ts
     pairing.service.ts
     storage.service.ts
     admin-bootstrap.service.ts
+    pi-analytics.service.ts # getAnalytics(deviceId) -> PiAnalyticsResponse | null; reads the pythonServer DB via db-pi-analytics.ts, scoped by the device's piId
   middleware/
     auth.middleware.ts        # authMiddleware, requireRole, requireAdminDeviceAccess
     validation.middleware.ts
@@ -52,7 +54,9 @@ src/
 
 MySQL via Prisma v6. DB instance is the `prisma` singleton from `src/db.ts` — never call `new PrismaClient()` inline.
 
-Key models: `User`, `Device`, `Content`, `PlaylistItem`, `DeviceHeartbeat`.
+Key models: `User`, `Device` (now has optional unique `piId` — Raspberry Pi MAC address, links to the pythonServer analytics DB), `Content`, `PlaylistItem`, `DeviceHeartbeat`.
+
+A second, read-only Prisma schema (`prisma/pi-analytics.schema.prisma`, client at `src/db-pi-analytics.ts`) points at the pythonServer's MySQL DB (`PI_ANALYTICS_DATABASE_URL`) and mirrors `pythonServer/src/db/models.py` exactly (`Visitor`, `Session`, `SyncLog` → tables `visitors`/`sessions`/`sync_log`). Migrations for that DB are owned by `pythonServer/alembic` — never run `prisma migrate` against it from here; `prisma:push:pi-analytics` is dev/test-only convenience for local schema sync.
 
 Device status enum: `ONLINE | OFFLINE`.  
 Content type enum: `IMAGE | VIDEO | WEBPAGE`.
@@ -109,6 +113,7 @@ PORT=8080
 JWT_ACCESS_SECRET=
 SOCKET_CORS_ORIGIN=
 DATABASE_URL=mysql://...
+PI_ANALYTICS_DATABASE_URL=mysql://...   # read-only, pythonServer's DB — see prisma/pi-analytics.schema.prisma
 ```
 
 NEVER hardcode any of these. Validate all required vars at startup.
@@ -117,10 +122,13 @@ NEVER hardcode any of these. Validate all required vars at startup.
 
 ```bash
 npx tsc --noEmit       # type check
+npm test               # Jest + Supertest — __test__/**/*.test.ts, run against a real local test DB
 npm run dev            # ts-node-dev dev server on :8080
 npm run build          # tsc compile
-npm run prisma:migrate # run Prisma migrations
+npm run prisma:migrate # run Prisma migrations (main spatiabox_db schema)
 npm run prisma:generate
+npm run prisma:generate:pi-analytics # regenerate the pi-analytics client after schema changes
+npm run prisma:push:pi-analytics     # dev/test-only: sync local pi-analytics DB to the schema (never in production — Python/Alembic owns that DB)
 ```
 
 ## ⚠️ Known Issues
