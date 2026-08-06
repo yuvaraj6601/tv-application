@@ -21,8 +21,12 @@ export const deviceOrientationUpdateValidation = Joi.object({
   orientation: Joi.string().valid('PORTRAIT', 'LANDSCAPE', 'PORTRAIT_FLIP', 'LANDSCAPE_FLIP').required()
 });
 
+// Matches the Python server's local-dev PI_ID default (see pythonServer/.env.example) — lets a
+// device be linked to a locally-running dev instance without a real Pi MAC address.
+export const LOCAL_DEV_PI_ID = 'local-dev-test';
+
 export const devicePiIdUpdateValidation = Joi.object({
-  piId: Joi.string()
-    .pattern(/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/)
+  piId: Joi.alternatives()
+    .try(Joi.string().pattern(/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/), Joi.string().valid(LOCAL_DEV_PI_ID))
     .required()
 });

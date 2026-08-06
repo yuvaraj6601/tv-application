@@ -5,7 +5,7 @@ import { DeviceDetailModel, DeviceOrientation, deviceService } from '../../../se
 import { DeviceAnalyticsModel } from '../../../interfaces/pi-analytics.interface';
 import { Modal } from '../../../components/common/modal/modal.component';
 import { STRINGS } from '../../../constants/strings.constant';
-import { formatWatchTime, isValidMacAddress } from '../../../utils/functions.utils';
+import { formatWatchTime, isValidPiId } from '../../../utils/functions.utils';
 import './device-detail.screen.scss';
 
 export const DeviceDetailScreen = (): React.JSX.Element => {
@@ -134,7 +134,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
     }
 
     const trimmedPiId = piIdState.value.trim();
-    if (!isValidMacAddress(trimmedPiId)) {
+    if (!isValidPiId(trimmedPiId)) {
       setPiIdState(prev => ({ ...prev, error: STRINGS.devices.detail.piIdInvalid }));
       return;
     }

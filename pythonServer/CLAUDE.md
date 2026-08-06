@@ -47,7 +47,7 @@ PI_ANALYTICS_DATABASE_URL         — MySQL connection string (local/staging DB 
 PI_ID                             — Pi MAC address in production (auto-detected via getmac), fixed dev value locally
 CAPTURE_INTERVAL_SECONDS
 ABSENCE_TIMEOUT_SECONDS
-FACE_MATCH_DISTANCE_THRESHOLD      — cosine distance (1 - cosine similarity) for InsightFace embeddings; default 0.5, confirmed target range 0.4-0.6, tune against real captures
+FACE_MATCH_DISTANCE_THRESHOLD      — cosine distance (1 - cosine similarity) for InsightFace embeddings; default 0.6 (loosened from 0.5 after 2026-08-06 real-webcam verification showed 0.5 was too strict — same person re-registered as a new visitor), confirmed target range 0.4-0.6
 DATA_DIR
 ROTATION_CHECK_INTERVAL_SECONDS
 SYNC_INTERVAL_SECONDS

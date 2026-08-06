@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatWatchTime, isValidMacAddress } from '../utils/functions.utils';
+import { formatWatchTime, isValidMacAddress, isValidPiId } from '../utils/functions.utils';
 
 describe('isValidMacAddress', () => {
   it('happy path — accepts a well-formed MAC address', () => {
@@ -28,6 +28,24 @@ describe('isValidMacAddress', () => {
 
   it('boundary — rejects a MAC address using dashes instead of colons', () => {
     expect(isValidMacAddress('b8-27-eb-11-11-11')).toBe(false);
+  });
+});
+
+describe('isValidPiId', () => {
+  it('happy path — accepts a well-formed MAC address', () => {
+    expect(isValidPiId('b8:27:eb:11:11:11')).toBe(true);
+  });
+
+  it('happy path — accepts the local-dev-test literal', () => {
+    expect(isValidPiId('local-dev-test')).toBe(true);
+  });
+
+  it('validation failure — rejects a malformed value that is not the local-dev literal', () => {
+    expect(isValidPiId('not-a-mac')).toBe(false);
+  });
+
+  it('boundary — rejects a near-miss of the local-dev literal', () => {
+    expect(isValidPiId('local-dev-test-2')).toBe(false);
   });
 });
 
