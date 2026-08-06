@@ -9,6 +9,7 @@ import {
   deviceOrientationUpdateValidation,
   devicePairValidation,
   deviceParamValidation,
+  devicePiIdUpdateValidation,
   deviceRegisterValidation
 } from '../../validations/device.validation';
 
@@ -68,5 +69,22 @@ deviceRoute.patch(
   validationMiddleware(deviceOrientationUpdateValidation),
   requireAdminDeviceAccess(),
   deviceController.updateOrientation
+);
+deviceRoute.patch(
+  '/:deviceId/pi-id',
+  authMiddleware,
+  requireRole(['ADMIN']),
+  validationMiddleware(deviceParamValidation, 'params'),
+  validationMiddleware(devicePiIdUpdateValidation),
+  requireAdminDeviceAccess(),
+  deviceController.updatePiId
+);
+deviceRoute.get(
+  '/:deviceId/analytics',
+  authMiddleware,
+  requireRole(['ADMIN']),
+  validationMiddleware(deviceParamValidation, 'params'),
+  requireAdminDeviceAccess(),
+  deviceController.getAnalytics
 );
 deviceRoute.use('/:deviceId/content', contentRoute);

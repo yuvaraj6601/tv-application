@@ -140,5 +140,23 @@ export const deviceService = {
     });
 
     return device?.orientation || 'PORTRAIT';
+  },
+  updatePiId: async (payload: { userId: string; deviceId: string; piId: string }): Promise<string | null> => {
+    const device = await prisma.device.findFirst({
+      where: { id: payload.deviceId, userId: payload.userId },
+      select: { id: true }
+    });
+
+    if (!device) {
+      return null;
+    }
+
+    await prisma.device.update({
+      where: { id: payload.deviceId },
+      data: { piId: payload.piId },
+      select: { id: true }
+    });
+
+    return payload.piId;
   }
 };

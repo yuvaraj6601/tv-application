@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { pairingService } from '../services/pairing.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { deviceService } from '../services/device.service';
 import { contentService } from '../services/content.service';
+import { piAnalyticsService } from '../services/pi-analytics.service';
 import { socketGateway } from '../socket/socket.gateway';
 
 const getParamValue = (value: string | string[] | undefined): string => {
@@ -137,6 +139,51 @@ export const deviceController = {
       status: true,
       message: 'Device orientation updated successfully',
       data: { orientation }
+    });
+  },
+  updatePiId: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    if (!req.auth) {
+      res.status(401).json({ status: false, message: 'Unauthorized' });
+      return;
+    }
+
+    try {
+      const piId = await deviceService.updatePiId({
+        userId: req.auth.sub,
+        deviceId: getParamValue(req.params.deviceId),
+        piId: req.body.piId
+      });
+
+      if (!piId) {
+        res.status(404).json({ status: false, message: 'Device not found' });
+        return;
+      }
+
+      res.status(200).json({
+        status: true,
+        message: 'Device pi_id updated successfully',
+        data: { piId }
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        res.status(409).json({ status: false, message: 'This pi_id is already assigned to another device' });
+        return;
+      }
+
+      throw error;
+    }
+  },
+  getAnalytics: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    if (!req.auth) {
+      res.status(401).json({ status: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const analytics = await piAnalyticsService.getAnalytics(getParamValue(req.params.deviceId));
+
+    res.status(200).json({
+      status: true,
+      data: analytics
     });
   }
 };

@@ -47,6 +47,7 @@ model Device {
   lastSeen       DateTime?
   status         DeviceStatus      @default(OFFLINE)
   orientation    DeviceOrientation @default(PORTRAIT)
+  piId           String?           @unique
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   contents       Content[]
