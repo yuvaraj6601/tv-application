@@ -10,11 +10,11 @@ dependencies = [
     "alembic",
     "pydantic-settings",
     "python-dotenv",
-    "face_recognition",
+    "insightface",
+    "onnxruntime",
     "opencv-python",
     "apscheduler",
     "getmac",
-    "setuptools<81",
 ]
 
 [dependency-groups]
@@ -30,7 +30,7 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["face_recognition", "cv2", "getmac", "apscheduler.*"]
+module = ["insightface.*", "cv2", "getmac", "apscheduler.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

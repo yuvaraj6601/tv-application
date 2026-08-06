@@ -28,9 +28,9 @@ deploy/
 
 ## Modules (add one line per module as features are built)
 src/session/session_tracker.py     — SessionTracker: record_presence(visitor_id, at), close_expired_sessions(now, absence_timeout_seconds) -> list[FinalizedSession]; in-memory continuous-presence state machine
-src/recognition/face_matcher.py    — match_face(embedding, known_faces, distance_threshold) -> visitor_id | None; KnownFace pydantic model
+src/recognition/face_matcher.py    — match_face(embedding, known_faces, distance_threshold) -> visitor_id | None; KnownFace pydantic model; uses cosine distance (1 - cosine similarity), matching InsightFace/ArcFace embeddings — confirmed target threshold range 0.4-0.6
 src/recognition/user_registry.py   — UserRegistry: identify_or_register(embedding, first_seen_at, distance_threshold, data_dir) -> visitor_id; matches against an in-memory KnownFace cache (seeded from repository.get_known_faces at startup), mints a new UUID + calls daily_writer.write_new_visitor on no match
-src/capture/face_detector.py       — detect_faces(frame) -> list[FaceDetection]; thin wrapper over face_recognition.face_locations/face_encodings
+src/capture/face_detector.py       — detect_faces(frame) -> list[FaceDetection]; wraps insightface.app.FaceAnalysis (buffalo_s model pack, CPU-only via ctx_id=-1); model is lazy-loaded on first call via _get_face_analysis()/_load_face_analysis() (cached thereafter) — never import-time-loaded, so importing this module stays cheap and tests never need real model files
 src/capture/camera_capture.py      — CameraCapture: open()/read_frame()/close() wrapping cv2.VideoCapture, raises CameraCaptureError on failure
 src/storage/daily_writer.py        — write_session(session, data_dir, day=None) -> Path; write_new_visitor(record: NewVisitorRecord, data_dir, day=None) -> Path; append FinalizedSession/NewVisitorRecord as JSON lines under data/temporaryData/<day>/{sessions,visitors}.jsonl
 src/storage/folder_rotator.py      — rotate_day(data_dir, day) -> Path | None; moves temporaryData/<day> into syncData/<day>, merging file-by-file into an existing partial syncData/<day> if one exists
@@ -47,7 +47,7 @@ PI_ANALYTICS_DATABASE_URL         — MySQL connection string (local/staging DB 
 PI_ID                             — Pi MAC address in production (auto-detected via getmac), fixed dev value locally
 CAPTURE_INTERVAL_SECONDS
 ABSENCE_TIMEOUT_SECONDS
-FACE_MATCH_DISTANCE_THRESHOLD
+FACE_MATCH_DISTANCE_THRESHOLD      — cosine distance (1 - cosine similarity) for InsightFace embeddings; default 0.5, confirmed target range 0.4-0.6, tune against real captures
 DATA_DIR
 ROTATION_CHECK_INTERVAL_SECONDS
 SYNC_INTERVAL_SECONDS
