@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DeviceContentItemModel, contentService } from '../../../services/content.service';
 import { DeviceDetailModel, DeviceOrientation, deviceService } from '../../../services/device.service';
+import { DeviceAnalyticsModel } from '../../../interfaces/pi-analytics.interface';
 import { Modal } from '../../../components/common/modal/modal.component';
+import { STRINGS } from '../../../constants/strings.constant';
+import { formatWatchTime, isValidMacAddress } from '../../../utils/functions.utils';
 import './device-detail.screen.scss';
 
 export const DeviceDetailScreen = (): React.JSX.Element => {
@@ -17,6 +20,12 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [editingContentId, setEditingContentId] = useState<string | null>(null);
   const [editDurationValue, setEditDurationValue] = useState<string>('10');
+  const [piIdState, setPiIdState] = useState({ value: '', isSaving: false, error: '' });
+  const [analyticsState, setAnalyticsState] = useState<{
+    data: DeviceAnalyticsModel | null;
+    isLoading: boolean;
+    error: string;
+  }>({ data: null, isLoading: false, error: '' });
 
   const formatDateTime = (value: string | null): string => {
     if (!value) {
@@ -97,9 +106,52 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
     }
   };
 
+  const loadAnalytics = async (): Promise<void> => {
+    if (!deviceId) {
+      return;
+    }
+
+    setAnalyticsState(prev => ({ ...prev, isLoading: true, error: '' }));
+    try {
+      const data = await deviceService.getAnalytics(deviceId);
+      setAnalyticsState({ data, isLoading: false, error: '' });
+      if (data) {
+        setPiIdState(prev => ({ ...prev, value: data.piId }));
+      }
+    } catch (_error) {
+      setAnalyticsState({ data: null, isLoading: false, error: STRINGS.devices.detail.analyticsErrorLoad });
+    }
+  };
+
   useEffect(() => {
     loadItems().catch(() => undefined);
+    loadAnalytics().catch(() => undefined);
   }, [deviceId]);
+
+  const handleSavePiId = async (): Promise<void> => {
+    if (!deviceId) {
+      return;
+    }
+
+    const trimmedPiId = piIdState.value.trim();
+    if (!isValidMacAddress(trimmedPiId)) {
+      setPiIdState(prev => ({ ...prev, error: STRINGS.devices.detail.piIdInvalid }));
+      return;
+    }
+
+    setPiIdState(prev => ({ ...prev, isSaving: true, error: '' }));
+    try {
+      await deviceService.updatePiId(deviceId, trimmedPiId);
+      await loadAnalytics();
+      setPiIdState(prev => ({ ...prev, isSaving: false }));
+    } catch (error: unknown) {
+      setPiIdState(prev => ({
+        ...prev,
+        isSaving: false,
+        error: getRequestErrorMessage(error, STRINGS.devices.detail.piIdSaveFailed)
+      }));
+    }
+  };
 
   const handleAddWebpage = async (): Promise<void> => {
     if (!deviceId) {
@@ -279,6 +331,71 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
           <span>Last heartbeat IP</span>
           <strong>{deviceDetail?.lastHeartbeatIpAddress || '-'}</strong>
         </div>
+      </section>
+
+      <section className="analytics-panel">
+        <h3 className="analytics-panel__title">{STRINGS.devices.detail.analyticsTitle}</h3>
+        <div className="tool-card">
+          <h3>{STRINGS.devices.detail.piIdTitle}</h3>
+          <label>{STRINGS.devices.detail.piIdLabel}</label>
+          <input
+            value={piIdState.value}
+            placeholder={STRINGS.devices.detail.piIdPlaceholder}
+            onChange={event => setPiIdState(prev => ({ ...prev, value: event.target.value, error: '' }))}
+          />
+          <button type="button" disabled={piIdState.isSaving} onClick={handleSavePiId}>
+            {STRINGS.devices.detail.piIdSaveButton}
+          </button>
+          {piIdState.error ? <p className="analytics-panel__error">{piIdState.error}</p> : null}
+        </div>
+
+        {analyticsState.error ? <p className="analytics-panel__error">{analyticsState.error}</p> : null}
+        {analyticsState.isLoading ? <p className="analytics-panel__loading">Loading analytics...</p> : null}
+
+        {!analyticsState.isLoading && !analyticsState.data ? (
+          <p className="analytics-panel__empty">{STRINGS.devices.detail.analyticsEmptyPrompt}</p>
+        ) : null}
+
+        {analyticsState.data ? (
+          <>
+            <div className="device-health-panel">
+              <div className="device-health-panel__item">
+                <span>{STRINGS.devices.detail.analyticsUniqueVisitors}</span>
+                <strong>{analyticsState.data.uniqueVisitors}</strong>
+              </div>
+              <div className="device-health-panel__item">
+                <span>{STRINGS.devices.detail.analyticsTotalWatchTime}</span>
+                <strong>{formatWatchTime(analyticsState.data.totalWatchTimeSeconds)}</strong>
+              </div>
+            </div>
+
+            <h4 className="analytics-panel__subtitle">{STRINGS.devices.detail.analyticsPerVisitorTitle}</h4>
+            {analyticsState.data.visitors.length === 0 ? (
+              <p className="analytics-panel__empty">No visitors recorded yet.</p>
+            ) : (
+              <div className="analytics-table-wrapper">
+                <table className="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>{STRINGS.devices.detail.analyticsVisitorIdColumn}</th>
+                      <th>{STRINGS.devices.detail.analyticsWatchTimeColumn}</th>
+                      <th>{STRINGS.devices.detail.analyticsFirstSeenColumn}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analyticsState.data.visitors.map(visitor => (
+                      <tr key={visitor.visitorId}>
+                        <td>{visitor.visitorId}</td>
+                        <td>{formatWatchTime(visitor.watchTimeSeconds)}</td>
+                        <td>{formatDateTime(visitor.firstSeenAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        ) : null}
       </section>
 
       <section className="content-tools">

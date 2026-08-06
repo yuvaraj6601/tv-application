@@ -1,5 +1,6 @@
 import { dashboardAxios } from '../utils/axios.utils';
 import { DeviceSummary } from '../store/slices/devices.slice';
+import { DeviceAnalyticsModel } from '../interfaces/pi-analytics.interface';
 
 export type DeviceOrientation = 'PORTRAIT' | 'LANDSCAPE' | 'PORTRAIT_FLIP' | 'LANDSCAPE_FLIP';
 
@@ -38,5 +39,15 @@ export const deviceService = {
   },
   updateOrientation: async (deviceId: string, orientation: DeviceOrientation): Promise<void> => {
     await dashboardAxios.patch(`/api/v1/device/${deviceId}/orientation`, { orientation });
+  },
+  updatePiId: async (deviceId: string, piId: string): Promise<string> => {
+    const response = await dashboardAxios.patch<ApiResponseModel<{ piId: string }>>(`/api/v1/device/${deviceId}/pi-id`, {
+      piId
+    });
+    return response.data.data.piId;
+  },
+  getAnalytics: async (deviceId: string): Promise<DeviceAnalyticsModel | null> => {
+    const response = await dashboardAxios.get<ApiResponseModel<DeviceAnalyticsModel | null>>(`/api/v1/device/${deviceId}/analytics`);
+    return response.data.data;
   }
 };

@@ -92,6 +92,86 @@
   }
 }
 
+.analytics-panel {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__title {
+    margin: 0;
+    color: #0f172a;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    margin: 4px 0 0;
+    color: #1d2939;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  &__empty {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  &__loading {
+    margin: 0;
+    color: #475467;
+  }
+
+  &__error {
+    margin: 0;
+    color: #b42318;
+  }
+
+  .tool-card {
+    max-width: 420px;
+  }
+}
+
+.analytics-table-wrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+}
+
+.analytics-table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 14px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  td {
+    color: #0f172a;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
 .content-tools {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));

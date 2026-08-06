@@ -24,13 +24,18 @@ src/
       devices.slice.ts      # list of devices
   utils/
     axios.utils.ts          # dashboardAxios instance with request interceptor
+    functions.utils.ts      # pure helpers: isValidMacAddress, formatWatchTime
   constants/
     strings.constant.ts
   imports/
     assets.imports.ts
   interfaces/
+    pi-analytics.interface.ts  # DeviceAnalyticsModel, PiAnalyticsVisitorModel
   adapters/
   themes/
+  __tests__/
+    setup.ts
+    functions.utils.test.ts
 ```
 
 > Note: This project uses `services/` instead of `models/` for the API layer. The pattern is identical — one file per resource, all calls via `dashboardAxios`. Treat `services/*.service.ts` as equivalent to `models/*.model.ts` from the skill.
@@ -79,7 +84,7 @@ React Router v7 with `<BrowserRouter>` in `main.tsx`.
 
 - `/login` → `LoginScreen` (public)
 - `/devices` → `DevicesScreen` (protected)
-- `/devices/:deviceId` → `DeviceDetailScreen` (protected)
+- `/devices/:deviceId` → `DeviceDetailScreen` (protected) — now also shows a `pi_id` (Raspberry Pi MAC address) input and a visitor-analytics section (unique visitors, total watch time, per-visitor table), fetched via `deviceService.getAnalytics(deviceId)`; empty-state prompt shown when no `piId` is set yet
 
 Guard: `ProtectedRoutes` reads `state.auth.token`; redirects to `/login` if null.
 
@@ -137,6 +142,7 @@ Note: backend uses `status: boolean` (not `'success' | 'failed'`). Always read `
 
 ```bash
 npx tsc --noEmit        # type check (alias: npm run typecheck)
+npm test                # Vitest — src/__tests__/**/*.test.ts (pure logic only)
 npm run dev             # dev server on :5173
 npm run build           # production build
 ```
