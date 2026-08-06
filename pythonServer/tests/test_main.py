@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -8,6 +9,14 @@ from src.recognition.user_registry import UserRegistry
 from src.session.session_tracker import SessionTracker
 
 NOW = datetime(2026, 8, 5, 10, 0, 0)
+
+
+class _FakeAnalysis:
+    def __init__(self, faces: list) -> None:
+        self._faces = faces
+
+    def get(self, frame: np.ndarray) -> list:
+        return self._faces
 
 
 def test_resolve_pi_id_production_uses_getmac(monkeypatch) -> None:
@@ -28,19 +37,14 @@ def test_resolve_pi_id_local_uses_configured_value(monkeypatch) -> None:
 
 def test_process_frame_happy_path_records_presence_for_detected_face(tmp_path, monkeypatch) -> None:
     frame = np.zeros((10, 10, 3), dtype=np.uint8)
-    fake_detection_embedding = [0.1, 0.2, 0.3]
+    fake_face = SimpleNamespace(embedding=np.array([0.1, 0.2, 0.3]), bbox=np.array([0.0, 0.0, 10.0, 10.0]))
 
-    monkeypatch.setattr(face_detector.face_recognition, "face_locations", lambda f: [(0, 10, 10, 0)])
-    monkeypatch.setattr(
-        face_detector.face_recognition,
-        "face_encodings",
-        lambda f, locations: [np.array(fake_detection_embedding)],
-    )
+    monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis([fake_face]))
 
     registry = UserRegistry()
     tracker = SessionTracker()
 
-    main.process_frame(frame, registry, tracker, tmp_path, distance_threshold=0.6, now=NOW)
+    main.process_frame(frame, registry, tracker, tmp_path, distance_threshold=0.5, now=NOW)
 
     closed = tracker.close_expired_sessions(NOW, absence_timeout_seconds=0)
     assert len(closed) == 1
@@ -50,13 +54,12 @@ def test_process_frame_happy_path_records_presence_for_detected_face(tmp_path, m
 def test_process_frame_boundary_no_faces_records_nothing(tmp_path, monkeypatch) -> None:
     frame = np.zeros((10, 10, 3), dtype=np.uint8)
 
-    monkeypatch.setattr(face_detector.face_recognition, "face_locations", lambda f: [])
-    monkeypatch.setattr(face_detector.face_recognition, "face_encodings", lambda f, locations: [])
+    monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis([]))
 
     registry = UserRegistry()
     tracker = SessionTracker()
 
-    main.process_frame(frame, registry, tracker, tmp_path, distance_threshold=0.6, now=NOW)
+    main.process_frame(frame, registry, tracker, tmp_path, distance_threshold=0.5, now=NOW)
 
     closed = tracker.close_expired_sessions(NOW, absence_timeout_seconds=0)
     assert closed == []

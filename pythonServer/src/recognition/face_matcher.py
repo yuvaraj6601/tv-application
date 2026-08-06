@@ -1,4 +1,3 @@
-import face_recognition
 import numpy as np
 from pydantic import BaseModel
 
@@ -6,6 +5,11 @@ from pydantic import BaseModel
 class KnownFace(BaseModel):
     visitor_id: str
     embedding: list[float]
+
+
+def _cosine_distance(a: np.ndarray, b: np.ndarray) -> float:
+    similarity = float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+    return 1.0 - similarity
 
 
 def match_face(
@@ -16,8 +20,8 @@ def match_face(
     if not known_faces:
         return None
 
-    known_encodings = [np.array(face.embedding) for face in known_faces]
-    distances = face_recognition.face_distance(known_encodings, np.array(embedding))
+    candidate = np.array(embedding)
+    distances = [_cosine_distance(np.array(face.embedding), candidate) for face in known_faces]
 
     best_index = int(np.argmin(distances))
     if distances[best_index] <= distance_threshold:
