@@ -37,7 +37,9 @@ def test_resolve_pi_id_local_uses_configured_value(monkeypatch) -> None:
 
 def test_process_frame_happy_path_records_presence_for_detected_face(tmp_path, monkeypatch) -> None:
     frame = np.zeros((10, 10, 3), dtype=np.uint8)
-    fake_face = SimpleNamespace(embedding=np.array([0.1, 0.2, 0.3]), bbox=np.array([0.0, 0.0, 10.0, 10.0]))
+    fake_face = SimpleNamespace(
+        embedding=np.array([0.1, 0.2, 0.3]), bbox=np.array([0.0, 0.0, 10.0, 10.0]), age=30.0, gender=1
+    )
 
     monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis([fake_face]))
 

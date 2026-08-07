@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from src.recognition.face_matcher import KnownFace
@@ -17,17 +18,27 @@ def _visitors_file_lines(tmp_path) -> list[str]:
 def test_happy_path_new_embedding_creates_visitor_and_writes_record(tmp_path) -> None:
     registry = UserRegistry()
 
-    visitor_id = registry.identify_or_register([1.0, 0.0, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path)
+    visitor_id = registry.identify_or_register(
+        [1.0, 0.0, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path, age=28, gender="male"
+    )
 
     assert visitor_id
-    assert len(_visitors_file_lines(tmp_path)) == 1
+    lines = _visitors_file_lines(tmp_path)
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["age"] == 28
+    assert record["gender"] == "male"
 
 
 def test_conflict_repeated_similar_embedding_returns_same_visitor_no_extra_write(tmp_path) -> None:
     registry = UserRegistry()
 
-    first_id = registry.identify_or_register([1.0, 0.0, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path)
-    second_id = registry.identify_or_register([0.99, 0.14, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path)
+    first_id = registry.identify_or_register(
+        [1.0, 0.0, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path, age=28, gender="male"
+    )
+    second_id = registry.identify_or_register(
+        [0.99, 0.14, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path, age=29, gender="male"
+    )
 
     assert second_id == first_id
     assert len(_visitors_file_lines(tmp_path)) == 1
@@ -36,8 +47,12 @@ def test_conflict_repeated_similar_embedding_returns_same_visitor_no_extra_write
 def test_boundary_distinct_embeddings_create_distinct_visitors(tmp_path) -> None:
     registry = UserRegistry()
 
-    first_id = registry.identify_or_register([1.0, 0.0, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path)
-    second_id = registry.identify_or_register([0.0, 1.0, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path)
+    first_id = registry.identify_or_register(
+        [1.0, 0.0, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path, age=28, gender="male"
+    )
+    second_id = registry.identify_or_register(
+        [0.0, 1.0, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path, age=35, gender="female"
+    )
 
     assert first_id != second_id
     assert len(_visitors_file_lines(tmp_path)) == 2
@@ -46,7 +61,9 @@ def test_boundary_distinct_embeddings_create_distinct_visitors(tmp_path) -> None
 def test_validation_preloaded_known_face_matches_without_writing(tmp_path) -> None:
     registry = UserRegistry(known_faces=[KnownFace(visitor_id="visitor-preloaded", embedding=[1.0, 0.0, 0.0])])
 
-    visitor_id = registry.identify_or_register([0.99, 0.14, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path)
+    visitor_id = registry.identify_or_register(
+        [0.99, 0.14, 0.0], FIRST_SEEN_AT, DISTANCE_THRESHOLD, tmp_path, age=40, gender="female"
+    )
 
     assert visitor_id == "visitor-preloaded"
     assert _visitors_file_lines(tmp_path) == []

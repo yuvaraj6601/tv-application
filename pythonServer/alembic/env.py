@@ -14,7 +14,9 @@ config = context.config
 
 # Migrations run synchronously — swap the async driver for the sync one.
 sync_database_url = settings.pi_analytics_database_url.replace("mysql+aiomysql", "mysql+pymysql")
-config.set_main_option("sqlalchemy.url", sync_database_url)
+# ConfigParser's interpolation treats "%" specially (e.g. a URL-encoded "%40" in a password)
+# — escape it before set_main_option() writes it through that interpolation-aware setter.
+config.set_main_option("sqlalchemy.url", sync_database_url.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

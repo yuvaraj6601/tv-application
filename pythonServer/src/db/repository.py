@@ -27,6 +27,8 @@ async def upsert_visitor(
     pi_id: str,
     embedding: list[float],
     first_seen_at: datetime,
+    age: int,
+    gender: str,
 ) -> bool:
     existing = await session.get(Visitor, visitor_id)
     if existing is not None:
@@ -38,6 +40,8 @@ async def upsert_visitor(
             pi_id=pi_id,
             face_embedding=json.dumps(embedding).encode("utf-8"),
             first_seen_at=first_seen_at,
+            age=age,
+            gender=gender,
         )
     )
     return True

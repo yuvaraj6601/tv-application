@@ -29,7 +29,7 @@ async def _sync_day(session: AsyncSession, pi_id: str, day_dir: Path) -> int:
 
     for visitor in visitor_records:
         await repository.upsert_visitor(
-            session, visitor.visitor_id, pi_id, visitor.embedding, visitor.first_seen_at
+            session, visitor.visitor_id, pi_id, visitor.embedding, visitor.first_seen_at, visitor.age, visitor.gender
         )
 
     # Visitor and Session aren't linked via an ORM relationship(), so the flush's

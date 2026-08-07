@@ -37,7 +37,9 @@ def process_frame(
     now: datetime,
 ) -> None:
     for detection in detect_faces(frame):
-        visitor_id = registry.identify_or_register(detection.embedding, now, distance_threshold, data_dir)
+        visitor_id = registry.identify_or_register(
+            detection.embedding, now, distance_threshold, data_dir, detection.age, detection.gender
+        )
         tracker.record_presence(visitor_id, now)
 
 
