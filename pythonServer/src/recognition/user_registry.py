@@ -16,6 +16,8 @@ class UserRegistry:
         first_seen_at: datetime,
         distance_threshold: float,
         data_dir: str | Path,
+        age: int,
+        gender: str,
     ) -> str:
         matched_visitor_id = match_face(embedding, self._known_faces, distance_threshold)
         if matched_visitor_id is not None:
@@ -24,7 +26,13 @@ class UserRegistry:
         new_visitor_id = str(uuid.uuid4())
         self._known_faces.append(KnownFace(visitor_id=new_visitor_id, embedding=embedding))
         write_new_visitor(
-            NewVisitorRecord(visitor_id=new_visitor_id, embedding=embedding, first_seen_at=first_seen_at),
+            NewVisitorRecord(
+                visitor_id=new_visitor_id,
+                embedding=embedding,
+                first_seen_at=first_seen_at,
+                age=age,
+                gender=gender,
+            ),
             data_dir,
         )
         return new_visitor_id

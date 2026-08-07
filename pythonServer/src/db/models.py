@@ -17,6 +17,8 @@ class Visitor(Base):
     pi_id: Mapped[str] = mapped_column(String(17), index=True)
     face_embedding: Mapped[bytes] = mapped_column(LargeBinary)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime)
+    age: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gender: Mapped[str | None] = mapped_column(String(10), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

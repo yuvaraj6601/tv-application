@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from src.db import repository
-from src.db.models import Base
+from src.db.models import Base, Visitor
 from src.storage import db_syncer
 
 PI_ID = "b8:27:eb:11:11:11"
@@ -56,6 +56,8 @@ def _visitor_record(visitor_id: str = "visitor-1") -> dict:
         "visitor_id": visitor_id,
         "embedding": [0.1, 0.2, 0.3],
         "first_seen_at": "2026-08-05T08:55:00",
+        "age": 32,
+        "gender": "male",
     }
 
 
@@ -64,7 +66,7 @@ async def test_happy_path_syncs_sessions_for_known_visitor_and_moves_folder(
 ) -> None:
     async with session_factory() as session:
         await repository.upsert_visitor(
-            session, "visitor-1", PI_ID, [0.1, 0.2, 0.3], datetime(2026, 8, 5, 8, 55, 0)
+            session, "visitor-1", PI_ID, [0.1, 0.2, 0.3], datetime(2026, 8, 5, 8, 55, 0), age=32, gender="male"
         )
         await session.commit()
 
@@ -97,9 +99,13 @@ async def test_happy_path_syncs_new_visitor_and_session_together(
     async with session_factory() as session:
         known_faces = await repository.get_known_faces(session, PI_ID)
         total = await repository.get_total_watch_time_seconds(session, PI_ID)
+        visitor = await session.get(Visitor, "visitor-1")
 
     assert [f.visitor_id for f in known_faces] == ["visitor-1"]
     assert total == 20
+    assert visitor is not None
+    assert visitor.age == 32
+    assert visitor.gender == "male"
 
 
 async def test_boundary_nothing_pending_returns_empty_list(
@@ -154,7 +160,7 @@ async def test_conflict_partial_failure_leaves_bad_day_untouched(
     _write_sessions_file(good_day_dir, [_session_record("visitor-1")])
     async with session_factory() as session:
         await repository.upsert_visitor(
-            session, "visitor-1", PI_ID, [0.1, 0.2, 0.3], datetime(2026, 8, 4, 8, 55, 0)
+            session, "visitor-1", PI_ID, [0.1, 0.2, 0.3], datetime(2026, 8, 4, 8, 55, 0), age=32, gender="male"
         )
         await session.commit()
 

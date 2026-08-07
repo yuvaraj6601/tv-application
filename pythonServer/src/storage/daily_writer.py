@@ -10,6 +10,8 @@ class NewVisitorRecord(BaseModel):
     visitor_id: str
     embedding: list[float]
     first_seen_at: datetime
+    age: int
+    gender: str
 
 
 def _append_jsonl_line(data_dir: str | Path, day: date, file_name: str, line: str) -> Path:

@@ -7,11 +7,15 @@ from pydantic import BaseModel
 class FaceDetection(BaseModel):
     embedding: list[float]
     bounding_box: tuple[int, int, int, int]
+    age: int
+    gender: str
 
 
 class _DetectedFace(Protocol):
     embedding: np.ndarray
     bbox: np.ndarray
+    age: float
+    gender: int
 
 
 class _FaceAnalysis(Protocol):
@@ -48,6 +52,8 @@ def detect_faces(frame: np.ndarray) -> list[FaceDetection]:
             FaceDetection(
                 embedding=list(face.embedding),
                 bounding_box=(int(x1), int(y1), int(x2), int(y2)),
+                age=round(face.age),
+                gender="male" if face.gender == 1 else "female",
             )
         )
 

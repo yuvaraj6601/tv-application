@@ -13,9 +13,13 @@ class _FakeAnalysis:
         return self._faces
 
 
+def _fake_face(embedding, bbox, age=30.0, gender=1):
+    return SimpleNamespace(embedding=np.array(embedding), bbox=np.array(bbox), age=age, gender=gender)
+
+
 def test_happy_path_one_face_returns_one_detection(monkeypatch) -> None:
     frame = np.zeros((10, 10, 3), dtype=np.uint8)
-    fake_face = SimpleNamespace(embedding=np.array([0.1, 0.2, 0.3]), bbox=np.array([0.0, 1.0, 10.0, 11.0]))
+    fake_face = _fake_face([0.1, 0.2, 0.3], [0.0, 1.0, 10.0, 11.0], age=25.0, gender=1)
 
     monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis([fake_face]))
 
@@ -24,6 +28,31 @@ def test_happy_path_one_face_returns_one_detection(monkeypatch) -> None:
     assert len(detections) == 1
     assert detections[0].embedding == [0.1, 0.2, 0.3]
     assert detections[0].bounding_box == (0, 1, 10, 11)
+    assert detections[0].age == 25
+    assert detections[0].gender == "male"
+
+
+def test_happy_path_maps_gender_zero_to_female(monkeypatch) -> None:
+    frame = np.zeros((10, 10, 3), dtype=np.uint8)
+    fake_face = _fake_face([0.1, 0.2, 0.3], [0.0, 1.0, 10.0, 11.0], age=40.0, gender=0)
+
+    monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis([fake_face]))
+
+    detections = face_detector.detect_faces(frame)
+
+    assert detections[0].gender == "female"
+
+
+def test_boundary_age_is_rounded_to_int(monkeypatch) -> None:
+    frame = np.zeros((10, 10, 3), dtype=np.uint8)
+    fake_face = _fake_face([0.1, 0.2, 0.3], [0.0, 1.0, 10.0, 11.0], age=29.7, gender=1)
+
+    monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis([fake_face]))
+
+    detections = face_detector.detect_faces(frame)
+
+    assert detections[0].age == 30
+    assert isinstance(detections[0].age, int)
 
 
 def test_boundary_zero_faces_returns_empty_list(monkeypatch) -> None:
@@ -38,8 +67,8 @@ def test_boundary_zero_faces_returns_empty_list(monkeypatch) -> None:
 
 def test_boundary_multiple_faces_returns_multiple_detections(monkeypatch) -> None:
     frame = np.zeros((10, 10, 3), dtype=np.uint8)
-    face_1 = SimpleNamespace(embedding=np.array([0.1, 0.2]), bbox=np.array([0.0, 0.0, 10.0, 10.0]))
-    face_2 = SimpleNamespace(embedding=np.array([0.3, 0.4]), bbox=np.array([20.0, 20.0, 30.0, 30.0]))
+    face_1 = _fake_face([0.1, 0.2], [0.0, 0.0, 10.0, 10.0], age=20.0, gender=1)
+    face_2 = _fake_face([0.3, 0.4], [20.0, 20.0, 30.0, 30.0], age=50.0, gender=0)
 
     monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis([face_1, face_2]))
 
@@ -50,6 +79,8 @@ def test_boundary_multiple_faces_returns_multiple_detections(monkeypatch) -> Non
     assert detections[1].embedding == [0.3, 0.4]
     assert detections[0].bounding_box == (0, 0, 10, 10)
     assert detections[1].bounding_box == (20, 20, 30, 30)
+    assert detections[0].gender == "male"
+    assert detections[1].gender == "female"
 
 
 def test_lazy_loading_only_initializes_analysis_once(monkeypatch) -> None:

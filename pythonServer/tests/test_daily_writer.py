@@ -19,6 +19,8 @@ def _sample_visitor_record(visitor_id: str = "visitor-1") -> NewVisitorRecord:
         visitor_id=visitor_id,
         embedding=[0.1, 0.2, 0.3],
         first_seen_at=datetime(2026, 8, 5, 9, 0, 0),
+        age=30,
+        gender="male",
     )
 
 

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from src.db import repository
-from src.db.models import Base
+from src.db.models import Base, Visitor
 from src.session.session_tracker import FinalizedSession
 
 PI_ID_A = "b8:27:eb:11:11:11"
@@ -32,6 +32,8 @@ async def test_happy_path_upsert_then_get_known_faces_round_trips(db_session: As
         pi_id=PI_ID_A,
         embedding=[0.1, 0.2, 0.3],
         first_seen_at=datetime(2026, 8, 5, 9, 0, 0),
+        age=30,
+        gender="male",
     )
     await db_session.commit()
 
@@ -43,6 +45,25 @@ async def test_happy_path_upsert_then_get_known_faces_round_trips(db_session: As
     assert known_faces[0].embedding == [0.1, 0.2, 0.3]
 
 
+async def test_happy_path_upsert_visitor_persists_age_and_gender(db_session: AsyncSession) -> None:
+    await repository.upsert_visitor(
+        db_session,
+        visitor_id="visitor-1",
+        pi_id=PI_ID_A,
+        embedding=[0.1, 0.2, 0.3],
+        first_seen_at=datetime(2026, 8, 5, 9, 0, 0),
+        age=27,
+        gender="female",
+    )
+    await db_session.commit()
+
+    visitor = await db_session.get(Visitor, "visitor-1")
+
+    assert visitor is not None
+    assert visitor.age == 27
+    assert visitor.gender == "female"
+
+
 async def test_conflict_upsert_visitor_twice_stays_one_row(db_session: AsyncSession) -> None:
     first_created = await repository.upsert_visitor(
         db_session,
@@ -50,6 +71,8 @@ async def test_conflict_upsert_visitor_twice_stays_one_row(db_session: AsyncSess
         pi_id=PI_ID_A,
         embedding=[0.1, 0.2, 0.3],
         first_seen_at=datetime(2026, 8, 5, 9, 0, 0),
+        age=30,
+        gender="male",
     )
     await db_session.commit()
 
@@ -59,6 +82,8 @@ async def test_conflict_upsert_visitor_twice_stays_one_row(db_session: AsyncSess
         pi_id=PI_ID_A,
         embedding=[9.9, 9.9, 9.9],
         first_seen_at=datetime(2026, 8, 5, 10, 0, 0),
+        age=31,
+        gender="male",
     )
     await db_session.commit()
 
@@ -83,6 +108,8 @@ async def test_boundary_get_known_faces_scoped_per_pi_id(db_session: AsyncSessio
         pi_id=PI_ID_A,
         embedding=[0.1, 0.2],
         first_seen_at=datetime(2026, 8, 5, 9, 0, 0),
+        age=30,
+        gender="male",
     )
     await repository.upsert_visitor(
         db_session,
@@ -90,6 +117,8 @@ async def test_boundary_get_known_faces_scoped_per_pi_id(db_session: AsyncSessio
         pi_id=PI_ID_B,
         embedding=[0.3, 0.4],
         first_seen_at=datetime(2026, 8, 5, 9, 5, 0),
+        age=45,
+        gender="female",
     )
     await db_session.commit()
 
@@ -107,6 +136,8 @@ async def test_happy_path_insert_sessions_creates_rows(db_session: AsyncSession)
         pi_id=PI_ID_A,
         embedding=[0.1, 0.2],
         first_seen_at=datetime(2026, 8, 5, 9, 0, 0),
+        age=30,
+        gender="male",
     )
     await db_session.commit()
 
