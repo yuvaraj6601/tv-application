@@ -17,6 +17,8 @@ model Visitor {
   piId          String   @map("pi_id") @db.VarChar(17)
   faceEmbedding Bytes    @map("face_embedding")
   firstSeenAt   DateTime @map("first_seen_at")
+  age           Int?     @map("age")
+  gender        String?  @map("gender") @db.VarChar(10)
   createdAt     DateTime @default(now()) @map("created_at")
 
   @@unique([piId, id])

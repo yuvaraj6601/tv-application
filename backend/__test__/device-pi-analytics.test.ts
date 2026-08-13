@@ -70,13 +70,17 @@ beforeAll(async () => {
         id: 'visitor-1',
         piId: PI_ID_A,
         faceEmbedding: Buffer.from('[]'),
-        firstSeenAt: new Date('2026-08-05T09:00:00Z')
+        firstSeenAt: new Date('2026-08-05T09:00:00Z'),
+        age: 25,
+        gender: 'male'
       },
       {
         id: 'visitor-2',
         piId: PI_ID_A,
         faceEmbedding: Buffer.from('[]'),
-        firstSeenAt: new Date('2026-08-05T09:05:00Z')
+        firstSeenAt: new Date('2026-08-05T09:05:00Z'),
+        age: 34,
+        gender: 'female'
       }
     ]
   });
@@ -194,13 +198,21 @@ describe('GET /api/v1/device/:deviceId/analytics', () => {
     expect(res.body.data.piId).toBe(PI_ID_A);
     expect(res.body.data.uniqueVisitors).toBe(2);
     expect(res.body.data.totalWatchTimeSeconds).toBe(35);
+    expect(res.body.data.averageWatchTimeSeconds).toBe(18);
+    expect(res.body.data.returningVisitors).toBe(1);
+    expect(res.body.data.oneTimeVisitors).toBe(1);
+    expect(res.body.data.genderBreakdown).toEqual({ male: 1, female: 1, unknown: 0 });
+    expect(res.body.data.ageBuckets).toEqual([
+      { label: '20-29', count: 1 },
+      { label: '30-39', count: 1 }
+    ]);
 
     const visitors = [...res.body.data.visitors].sort((a: { visitorId: string }, b: { visitorId: string }) =>
       a.visitorId.localeCompare(b.visitorId)
     );
     expect(visitors).toEqual([
-      { visitorId: 'visitor-1', watchTimeSeconds: 25, firstSeenAt: '2026-08-05T09:00:00.000Z' },
-      { visitorId: 'visitor-2', watchTimeSeconds: 10, firstSeenAt: '2026-08-05T09:05:00.000Z' }
+      { visitorId: 'visitor-1', watchTimeSeconds: 25, firstSeenAt: '2026-08-05T09:00:00.000Z', visitCount: 2 },
+      { visitorId: 'visitor-2', watchTimeSeconds: 10, firstSeenAt: '2026-08-05T09:05:00.000Z', visitCount: 1 }
     ]);
   });
 
