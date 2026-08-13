@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 
 import getmac
@@ -55,8 +55,28 @@ def flush_expired_sessions(
     return closed
 
 
-def rotate_previous_day(data_dir: str | Path, today: date) -> Path | None:
-    return rotate_day(data_dir, today - timedelta(days=1))
+def rotate_stale_days(data_dir: str | Path, today: date) -> list[Path]:
+    temporary_data_dir = Path(data_dir) / "temporaryData"
+    if not temporary_data_dir.exists():
+        return []
+
+    stale_days = []
+    for entry in temporary_data_dir.iterdir():
+        if not entry.is_dir():
+            continue
+        try:
+            day = date.fromisoformat(entry.name)
+        except ValueError:
+            continue
+        if day < today:
+            stale_days.append(day)
+
+    rotated = []
+    for day in sorted(stale_days):
+        dest_dir = rotate_day(data_dir, day)
+        if dest_dir is not None:
+            rotated.append(dest_dir)
+    return rotated
 
 
 async def run() -> None:
@@ -73,7 +93,7 @@ async def run() -> None:
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
-        lambda: rotate_previous_day(settings.data_dir, date.today()),
+        lambda: rotate_stale_days(settings.data_dir, date.today()),
         "interval",
         seconds=settings.rotation_check_interval_seconds,
     )
