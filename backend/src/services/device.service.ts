@@ -1,5 +1,6 @@
 import { DeviceOrientation } from '@prisma/client';
 import { prisma } from '../db';
+import { piAnalyticsPrisma } from '../db-pi-analytics';
 import { socketGateway } from '../socket/socket.gateway';
 
 export const deviceService = {
@@ -144,18 +145,32 @@ export const deviceService = {
   updatePiId: async (payload: { userId: string; deviceId: string; piId: string }): Promise<string | null> => {
     const device = await prisma.device.findFirst({
       where: { id: payload.deviceId, userId: payload.userId },
-      select: { id: true }
+      select: { id: true, piId: true }
     });
 
     if (!device) {
       return null;
     }
 
+    const previousPiId = device.piId;
+
     await prisma.device.update({
       where: { id: payload.deviceId },
       data: { piId: payload.piId },
       select: { id: true }
     });
+
+    if (previousPiId && previousPiId !== payload.piId) {
+      await piAnalyticsPrisma.visitor.updateMany({
+        where: { piId: previousPiId },
+        data: { piId: payload.piId }
+      });
+
+      await piAnalyticsPrisma.session.updateMany({
+        where: { piId: previousPiId },
+        data: { piId: payload.piId }
+      });
+    }
 
     return payload.piId;
   }

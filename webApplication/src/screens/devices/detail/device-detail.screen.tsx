@@ -4,6 +4,7 @@ import { DeviceContentItemModel, contentService } from '../../../services/conten
 import { DeviceDetailModel, DeviceOrientation, deviceService } from '../../../services/device.service';
 import { DeviceAnalyticsModel } from '../../../interfaces/pi-analytics.interface';
 import { Modal } from '../../../components/common/modal/modal.component';
+import { Toast } from '../../../components/common/toast/toast.component';
 import { DonutChart } from '../../../components/common/donut-chart/donut-chart.component';
 import { BarChart } from '../../../components/common/bar-chart/bar-chart.component';
 import { STRINGS } from '../../../constants/strings.constant';
@@ -23,6 +24,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
   const [editingContentId, setEditingContentId] = useState<string | null>(null);
   const [editDurationValue, setEditDurationValue] = useState<string>('10');
   const [piIdState, setPiIdState] = useState({ value: '', isSaving: false, error: '' });
+  const [toastState, setToastState] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [analyticsState, setAnalyticsState] = useState<{
     data: DeviceAnalyticsModel | null;
     isLoading: boolean;
@@ -146,12 +148,15 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
       await deviceService.updatePiId(deviceId, trimmedPiId);
       await loadAnalytics();
       setPiIdState(prev => ({ ...prev, isSaving: false }));
+      setToastState({ message: STRINGS.devices.detail.piIdSaveSuccess, type: 'success' });
     } catch (error: unknown) {
+      const message = getRequestErrorMessage(error, STRINGS.devices.detail.piIdSaveFailed);
       setPiIdState(prev => ({
         ...prev,
         isSaving: false,
-        error: getRequestErrorMessage(error, STRINGS.devices.detail.piIdSaveFailed)
+        error: message
       }));
+      setToastState({ message, type: 'error' });
     }
   };
 
@@ -420,7 +425,10 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
             onChange={event => setPiIdState(prev => ({ ...prev, value: event.target.value, error: '' }))}
           />
           <button type="button" disabled={piIdState.isSaving} onClick={handleSavePiId}>
-            {STRINGS.devices.detail.piIdSaveButton}
+            {piIdState.isSaving ? (
+              <span className="button-spinner" aria-hidden="true" />
+            ) : null}
+            {piIdState.isSaving ? STRINGS.devices.detail.piIdSaving : STRINGS.devices.detail.piIdSaveButton}
           </button>
           {piIdState.error ? <p className="analytics-panel__error">{piIdState.error}</p> : null}
         </div>
@@ -555,6 +563,10 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
           </>
         )}
       </Modal>
+
+      {toastState ? (
+        <Toast message={toastState.message} type={toastState.type} onClose={() => setToastState(null)} />
+      ) : null}
     </section>
   );
 };

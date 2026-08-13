@@ -40,12 +40,24 @@ describe('isValidPiId', () => {
     expect(isValidPiId('local-dev-test')).toBe(true);
   });
 
-  it('validation failure — rejects a malformed value that is not the local-dev literal', () => {
-    expect(isValidPiId('not-a-mac')).toBe(false);
+  it('happy path — accepts an arbitrary non-MAC value within the length limit', () => {
+    expect(isValidPiId('test')).toBe(true);
   });
 
-  it('boundary — rejects a near-miss of the local-dev literal', () => {
-    expect(isValidPiId('local-dev-test-2')).toBe(false);
+  it('validation failure — rejects an empty string', () => {
+    expect(isValidPiId('')).toBe(false);
+  });
+
+  it('validation failure — rejects a value made only of whitespace', () => {
+    expect(isValidPiId('   ')).toBe(false);
+  });
+
+  it('boundary — rejects a value longer than 17 characters', () => {
+    expect(isValidPiId('this-value-is-too-long')).toBe(false);
+  });
+
+  it('boundary — accepts a value exactly 17 characters long', () => {
+    expect(isValidPiId('12345678901234567')).toBe(true);
   });
 });
 

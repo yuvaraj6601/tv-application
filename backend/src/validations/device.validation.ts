@@ -26,7 +26,5 @@ export const deviceOrientationUpdateValidation = Joi.object({
 export const LOCAL_DEV_PI_ID = 'local-dev-test';
 
 export const devicePiIdUpdateValidation = Joi.object({
-  piId: Joi.alternatives()
-    .try(Joi.string().pattern(/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/), Joi.string().valid(LOCAL_DEV_PI_ID))
-    .required()
+  piId: Joi.string().max(17).required()
 });
