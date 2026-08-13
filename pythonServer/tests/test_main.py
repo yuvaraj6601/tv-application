@@ -89,18 +89,42 @@ def test_flush_expired_sessions_boundary_nothing_expired_writes_nothing(tmp_path
     assert not (tmp_path / "temporaryData" / "2026-08-05" / "sessions.jsonl").exists()
 
 
-def test_rotate_previous_day_happy_path_rotates_yesterday(tmp_path) -> None:
+def test_rotate_stale_days_happy_path_rotates_yesterday(tmp_path) -> None:
     yesterday_dir = tmp_path / "temporaryData" / "2026-08-04"
     yesterday_dir.mkdir(parents=True)
     (yesterday_dir / "sessions.jsonl").write_text('{"visitor_id": "v1"}\n', encoding="utf-8")
 
-    result = main.rotate_previous_day(tmp_path, today=date(2026, 8, 5))
+    result = main.rotate_stale_days(tmp_path, today=date(2026, 8, 5))
 
-    assert result == tmp_path / "syncData" / "2026-08-04"
+    assert result == [tmp_path / "syncData" / "2026-08-04"]
     assert not yesterday_dir.exists()
 
 
-def test_rotate_previous_day_boundary_nothing_to_rotate_returns_none(tmp_path) -> None:
-    result = main.rotate_previous_day(tmp_path, today=date(2026, 8, 5))
+def test_rotate_stale_days_boundary_nothing_to_rotate_returns_empty(tmp_path) -> None:
+    result = main.rotate_stale_days(tmp_path, today=date(2026, 8, 5))
 
-    assert result is None
+    assert result == []
+
+
+def test_rotate_stale_days_rotates_multiple_old_dates_but_not_today(tmp_path) -> None:
+    old_dir = tmp_path / "temporaryData" / "2026-08-01"
+    old_dir.mkdir(parents=True)
+    (old_dir / "sessions.jsonl").write_text('{"visitor_id": "v1"}\n', encoding="utf-8")
+
+    yesterday_dir = tmp_path / "temporaryData" / "2026-08-04"
+    yesterday_dir.mkdir(parents=True)
+    (yesterday_dir / "sessions.jsonl").write_text('{"visitor_id": "v2"}\n', encoding="utf-8")
+
+    today_dir = tmp_path / "temporaryData" / "2026-08-05"
+    today_dir.mkdir(parents=True)
+    (today_dir / "sessions.jsonl").write_text('{"visitor_id": "v3"}\n', encoding="utf-8")
+
+    result = main.rotate_stale_days(tmp_path, today=date(2026, 8, 5))
+
+    assert result == [
+        tmp_path / "syncData" / "2026-08-01",
+        tmp_path / "syncData" / "2026-08-04",
+    ]
+    assert not old_dir.exists()
+    assert not yesterday_dir.exists()
+    assert today_dir.exists()

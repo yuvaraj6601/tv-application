@@ -4,6 +4,8 @@ import { DeviceContentItemModel, contentService } from '../../../services/conten
 import { DeviceDetailModel, DeviceOrientation, deviceService } from '../../../services/device.service';
 import { DeviceAnalyticsModel } from '../../../interfaces/pi-analytics.interface';
 import { Modal } from '../../../components/common/modal/modal.component';
+import { DonutChart } from '../../../components/common/donut-chart/donut-chart.component';
+import { BarChart } from '../../../components/common/bar-chart/bar-chart.component';
 import { STRINGS } from '../../../constants/strings.constant';
 import { formatWatchTime, isValidPiId } from '../../../utils/functions.utils';
 import './device-detail.screen.scss';
@@ -333,71 +335,6 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
         </div>
       </section>
 
-      <section className="analytics-panel">
-        <h3 className="analytics-panel__title">{STRINGS.devices.detail.analyticsTitle}</h3>
-        <div className="tool-card">
-          <h3>{STRINGS.devices.detail.piIdTitle}</h3>
-          <label>{STRINGS.devices.detail.piIdLabel}</label>
-          <input
-            value={piIdState.value}
-            placeholder={STRINGS.devices.detail.piIdPlaceholder}
-            onChange={event => setPiIdState(prev => ({ ...prev, value: event.target.value, error: '' }))}
-          />
-          <button type="button" disabled={piIdState.isSaving} onClick={handleSavePiId}>
-            {STRINGS.devices.detail.piIdSaveButton}
-          </button>
-          {piIdState.error ? <p className="analytics-panel__error">{piIdState.error}</p> : null}
-        </div>
-
-        {analyticsState.error ? <p className="analytics-panel__error">{analyticsState.error}</p> : null}
-        {analyticsState.isLoading ? <p className="analytics-panel__loading">Loading analytics...</p> : null}
-
-        {!analyticsState.isLoading && !analyticsState.data ? (
-          <p className="analytics-panel__empty">{STRINGS.devices.detail.analyticsEmptyPrompt}</p>
-        ) : null}
-
-        {analyticsState.data ? (
-          <>
-            <div className="device-health-panel">
-              <div className="device-health-panel__item">
-                <span>{STRINGS.devices.detail.analyticsUniqueVisitors}</span>
-                <strong>{analyticsState.data.uniqueVisitors}</strong>
-              </div>
-              <div className="device-health-panel__item">
-                <span>{STRINGS.devices.detail.analyticsTotalWatchTime}</span>
-                <strong>{formatWatchTime(analyticsState.data.totalWatchTimeSeconds)}</strong>
-              </div>
-            </div>
-
-            <h4 className="analytics-panel__subtitle">{STRINGS.devices.detail.analyticsPerVisitorTitle}</h4>
-            {analyticsState.data.visitors.length === 0 ? (
-              <p className="analytics-panel__empty">No visitors recorded yet.</p>
-            ) : (
-              <div className="analytics-table-wrapper">
-                <table className="analytics-table">
-                  <thead>
-                    <tr>
-                      <th>{STRINGS.devices.detail.analyticsVisitorIdColumn}</th>
-                      <th>{STRINGS.devices.detail.analyticsWatchTimeColumn}</th>
-                      <th>{STRINGS.devices.detail.analyticsFirstSeenColumn}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analyticsState.data.visitors.map(visitor => (
-                      <tr key={visitor.visitorId}>
-                        <td>{visitor.visitorId}</td>
-                        <td>{formatWatchTime(visitor.watchTimeSeconds)}</td>
-                        <td>{formatDateTime(visitor.firstSeenAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        ) : null}
-      </section>
-
       <section className="content-tools">
         {/* <div className="tool-card">
           <h3>Add Webpage</h3>
@@ -470,6 +407,123 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
             </div>
           </article>
         ))}
+      </section>
+
+      <section className="analytics-panel">
+        <h3 className="analytics-panel__title">{STRINGS.devices.detail.analyticsTitle}</h3>
+        <div className="tool-card">
+          <h3>{STRINGS.devices.detail.piIdTitle}</h3>
+          <label>{STRINGS.devices.detail.piIdLabel}</label>
+          <input
+            value={piIdState.value}
+            placeholder={STRINGS.devices.detail.piIdPlaceholder}
+            onChange={event => setPiIdState(prev => ({ ...prev, value: event.target.value, error: '' }))}
+          />
+          <button type="button" disabled={piIdState.isSaving} onClick={handleSavePiId}>
+            {STRINGS.devices.detail.piIdSaveButton}
+          </button>
+          {piIdState.error ? <p className="analytics-panel__error">{piIdState.error}</p> : null}
+        </div>
+
+        {analyticsState.error ? <p className="analytics-panel__error">{analyticsState.error}</p> : null}
+        {analyticsState.isLoading ? <p className="analytics-panel__loading">Loading analytics...</p> : null}
+
+        {!analyticsState.isLoading && !analyticsState.data ? (
+          <p className="analytics-panel__empty">{STRINGS.devices.detail.analyticsEmptyPrompt}</p>
+        ) : null}
+
+        {analyticsState.data ? (
+          <>
+            <div className="analytics-stat-grid">
+              <div className="analytics-stat-grid__item analytics-stat-grid__item--accent">
+                <span>{STRINGS.devices.detail.analyticsTotalUniqueVisitors}</span>
+                <strong>{analyticsState.data.uniqueVisitors}</strong>
+              </div>
+              <div className="analytics-stat-grid__item analytics-stat-grid__item--accent">
+                <span>{STRINGS.devices.detail.analyticsTotalWatchTime}</span>
+                <strong>{formatWatchTime(analyticsState.data.totalWatchTimeSeconds)}</strong>
+              </div>
+              <div className="analytics-stat-grid__item">
+                <span>{STRINGS.devices.detail.analyticsAverageWatchTime}</span>
+                <strong>{formatWatchTime(analyticsState.data.averageWatchTimeSeconds)}</strong>
+              </div>
+              <div className="analytics-stat-grid__item">
+                <span>{STRINGS.devices.detail.analyticsReturningVisitors}</span>
+                <strong>{analyticsState.data.returningVisitors}</strong>
+              </div>
+            </div>
+
+            <div className="analytics-chart-grid">
+              <div className="analytics-chart-card">
+                <h4 className="analytics-panel__subtitle">{STRINGS.devices.detail.analyticsGenderTitle}</h4>
+                <DonutChart
+                  centerLabel={STRINGS.devices.detail.analyticsTotalUniqueVisitors}
+                  centerValue={String(analyticsState.data.uniqueVisitors)}
+                  segments={[
+                    { label: STRINGS.devices.detail.analyticsMale, value: analyticsState.data.genderBreakdown.male, color: '#0f766e' },
+                    { label: STRINGS.devices.detail.analyticsFemale, value: analyticsState.data.genderBreakdown.female, color: '#e879a6' },
+                    { label: STRINGS.devices.detail.analyticsUnknown, value: analyticsState.data.genderBreakdown.unknown, color: '#cbd5e1' }
+                  ]}
+                />
+              </div>
+
+              <div className="analytics-chart-card">
+                <h4 className="analytics-panel__subtitle">{STRINGS.devices.detail.analyticsVisitTypeTitle}</h4>
+                <DonutChart
+                  centerLabel={STRINGS.devices.detail.analyticsTotalUniqueVisitors}
+                  centerValue={String(analyticsState.data.uniqueVisitors)}
+                  segments={[
+                    { label: STRINGS.devices.detail.analyticsOneTimeVisitors, value: analyticsState.data.oneTimeVisitors, color: '#f59e0b' },
+                    { label: STRINGS.devices.detail.analyticsReturningVisitors, value: analyticsState.data.returningVisitors, color: '#0f766e' }
+                  ]}
+                />
+              </div>
+
+              <div className="analytics-chart-card analytics-chart-card--wide">
+                <h4 className="analytics-panel__subtitle">{STRINGS.devices.detail.analyticsAgeTitle}</h4>
+                {analyticsState.data.ageBuckets.length === 0 ? (
+                  <p className="analytics-panel__empty">{STRINGS.devices.detail.analyticsNoAgeData}</p>
+                ) : (
+                  <BarChart items={analyticsState.data.ageBuckets.map(bucket => ({ label: bucket.label, value: bucket.count }))} />
+                )}
+              </div>
+            </div>
+
+            <h4 className="analytics-panel__subtitle">{STRINGS.devices.detail.analyticsPerVisitorTitle}</h4>
+            {analyticsState.data.visitors.length === 0 ? (
+              <p className="analytics-panel__empty">No visitors recorded yet.</p>
+            ) : (
+              <div className="analytics-table-wrapper">
+                <table className="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>{STRINGS.devices.detail.analyticsVisitorIdColumn}</th>
+                      <th>{STRINGS.devices.detail.analyticsWatchTimeColumn}</th>
+                      <th>{STRINGS.devices.detail.analyticsVisitsColumn}</th>
+                      <th>{STRINGS.devices.detail.analyticsFirstSeenColumn}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analyticsState.data.visitors.map(visitor => (
+                      <tr key={visitor.visitorId}>
+                        <td>{visitor.visitorId}</td>
+                        <td>{formatWatchTime(visitor.watchTimeSeconds)}</td>
+                        <td>
+                          {visitor.visitCount > 1 ? (
+                            <span className="analytics-badge analytics-badge--returning">{visitor.visitCount}x</span>
+                          ) : (
+                            <span className="analytics-badge">{visitor.visitCount}x</span>
+                          )}
+                        </td>
+                        <td>{formatDateTime(visitor.firstSeenAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        ) : null}
       </section>
 
       <Modal isOpen={editingItem !== null} title="Edit Content" onClose={handleCancelEdit}>
