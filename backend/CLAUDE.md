@@ -54,7 +54,7 @@ src/
 
 MySQL via Prisma v6. DB instance is the `prisma` singleton from `src/db.ts` — never call `new PrismaClient()` inline.
 
-Key models: `User`, `Device` (now has optional unique `piId` — Raspberry Pi MAC address, links to the pythonServer analytics DB), `Content`, `PlaylistItem`, `DeviceHeartbeat`.
+Key models: `User`, `Device` (now has optional unique `piId` — Raspberry Pi MAC address, links to the pythonServer analytics DB; also has optional unique `macAddress` — the TV device's own hardware MAC, distinct from `piId`, captured at `/register` and used as the primary dedup key in `pairingService.registerDevice` so reinstalling the app reuses the same `Device` row instead of creating a duplicate), `Content`, `PlaylistItem`, `DeviceHeartbeat`.
 
 A second, read-only Prisma schema (`prisma/pi-analytics.schema.prisma`, client at `src/db-pi-analytics.ts`) points at the pythonServer's MySQL DB (`PI_ANALYTICS_DATABASE_URL`) and mirrors `pythonServer/src/db/models.py` exactly (`Visitor`, `Session`, `SyncLog` → tables `visitors`/`sessions`/`sync_log`). Migrations for that DB are owned by `pythonServer/alembic` — never run `prisma migrate` against it from here; `prisma:push:pi-analytics` is dev/test-only convenience for local schema sync.
 

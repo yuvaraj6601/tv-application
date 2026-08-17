@@ -84,7 +84,7 @@ React Router v7 with `<BrowserRouter>` in `main.tsx`.
 
 - `/login` → `LoginScreen` (public)
 - `/devices` → `DevicesScreen` (protected)
-- `/devices/:deviceId` → `DeviceDetailScreen` (protected) — now also shows a `pi_id` (Raspberry Pi MAC address) input and a visitor-analytics section (unique visitors, total watch time, per-visitor table), fetched via `deviceService.getAnalytics(deviceId)`; empty-state prompt shown when no `piId` is set yet
+- `/devices/:deviceId` → `DeviceDetailScreen` (protected) — now also shows a `pi_id` (Raspberry Pi MAC address) input and a visitor-analytics section (unique visitors, total watch time, per-visitor table), fetched via `deviceService.getAnalytics(deviceId)`; empty-state prompt shown when no `piId` is set yet. Also displays the device's own hardware `macAddress` (read-only, distinct from `piId`) next to the Unique ID.
 
 Guard: `ProtectedRoutes` reads `state.auth.token`; redirects to `/login` if null.
 

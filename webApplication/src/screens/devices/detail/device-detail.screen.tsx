@@ -305,6 +305,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
         <div className="device-detail-screen__identity">
           <p>Device ID: {deviceId}</p>
           <p>Unique ID: {deviceDetail?.deviceUniqueId || '-'}</p>
+          <p>MAC Address: {deviceDetail?.macAddress || '-'}</p>
         </div>
       </header>
       {errorMessage ? <p className="device-detail-screen__error">{errorMessage}</p> : null}

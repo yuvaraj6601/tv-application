@@ -49,6 +49,7 @@ src/
 - **`mobileAxios`** (`src/utils/axios.utils.ts`) — shared axios instance; reads `device.deviceToken` from Redux (`signageStore.getState().device.deviceToken`) and injects as `Authorization: Bearer <token>`.
 - **`signageStore`** (`src/store/store.ts`) — Redux store; slices: `app`, `device`, `playlist`.
 - **`tvSocketService`** (`src/services/socket.service.ts`) — singleton socket; call `connect(token)` then `emit('joinDeviceRoom', deviceId)`.
+- **`isMacAddress`** (`src/services/device-identifier.service.ts`) — pure helper; true when `deviceUniqueId` is a real MAC (vs. the ANDROID_ID/random fallback). `boot.screen.tsx` uses it to decide whether to also send `macAddress` on `/register`.
 
 ## Redux Store
 

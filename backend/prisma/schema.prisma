@@ -39,6 +39,7 @@ model Device {
   id             String            @id @default(cuid())
   deviceName     String
   deviceUniqueId String            @unique
+  macAddress     String?           @unique @db.VarChar(17)
   pairingCode    String?           @db.VarChar(4)
   isPaired       Boolean           @default(false)
   userId         String?
