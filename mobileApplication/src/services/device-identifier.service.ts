@@ -11,6 +11,10 @@ const storage = new MMKV({
 
 const DEVICE_ID_KEY = 'device-unique-id';
 
+const MAC_ADDRESS_PATTERN = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/;
+
+export const isMacAddress = (identifier: string): boolean => MAC_ADDRESS_PATTERN.test(identifier);
+
 const generateFallbackIdentifier = (): string => {
   const timestamp = Date.now().toString(36);
   const random = Math.floor(Math.random() * 1000000)

@@ -9,10 +9,15 @@ const generatePairingCode = (): string => {
 
 export const pairingService = {
   registerDevice: async (
-    payload: { deviceName: string; deviceUniqueId: string }
+    payload: { deviceName: string; deviceUniqueId: string; macAddress?: string }
   ): Promise<{ deviceId: string; pairingCode: string | null; deviceToken: string; isPaired: boolean; orientation: DeviceOrientation }> => {
-    const existingDevice = await prisma.device.findUnique({
-      where: { deviceUniqueId: payload.deviceUniqueId }
+    const existingDevice = await prisma.device.findFirst({
+      where: {
+        OR: [
+          { deviceUniqueId: payload.deviceUniqueId },
+          ...(payload.macAddress ? [{ macAddress: payload.macAddress }] : [])
+        ]
+      }
     });
 
     let deviceId = existingDevice?.id || '';
@@ -26,6 +31,7 @@ export const pairingService = {
         data: {
           deviceName: payload.deviceName,
           deviceUniqueId: payload.deviceUniqueId,
+          macAddress: payload.macAddress,
           pairingCode,
           isPaired: false,
           status: 'ONLINE',
@@ -42,6 +48,8 @@ export const pairingService = {
         where: { id: existingDevice.id },
         data: {
           deviceName: payload.deviceName,
+          deviceUniqueId: payload.deviceUniqueId,
+          macAddress: payload.macAddress,
           pairingCode,
           status: 'ONLINE',
           lastSeen: new Date()
@@ -56,6 +64,8 @@ export const pairingService = {
         where: { id: existingDevice.id },
         data: {
           deviceName: payload.deviceName,
+          deviceUniqueId: payload.deviceUniqueId,
+          macAddress: payload.macAddress,
           status: 'ONLINE',
           lastSeen: new Date()
         }

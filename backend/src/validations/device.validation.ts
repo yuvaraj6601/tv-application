@@ -1,8 +1,11 @@
 import Joi from 'joi';
 
+const MAC_ADDRESS_PATTERN = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/;
+
 export const deviceRegisterValidation = Joi.object({
   deviceName: Joi.string().min(2).max(120).required(),
-  deviceUniqueId: Joi.string().min(4).max(255).required()
+  deviceUniqueId: Joi.string().min(4).max(255).required(),
+  macAddress: Joi.string().pattern(MAC_ADDRESS_PATTERN).optional()
 });
 
 export const devicePairValidation = Joi.object({

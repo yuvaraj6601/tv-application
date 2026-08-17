@@ -4,6 +4,7 @@ import { DeviceOrientation } from '../types/app.types';
 interface RegisterDevicePayload {
   deviceName: string;
   deviceUniqueId: string;
+  macAddress?: string;
 }
 
 interface RegisterDeviceResponse {

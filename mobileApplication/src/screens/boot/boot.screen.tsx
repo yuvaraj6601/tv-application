@@ -9,7 +9,7 @@ import { setBootstrapped, setOnlineStatus } from '../../store/slices/app.slice';
 import { setDeviceIdentity, setDeviceToken, setOrientation, setPairingCode, setPaired } from '../../store/slices/device.slice';
 import { syncService } from '../../services/sync.service';
 import { setPlaylist } from '../../store/slices/playlist.slice';
-import { deviceIdentifierService } from '../../services/device-identifier.service';
+import { deviceIdentifierService, isMacAddress } from '../../services/device-identifier.service';
 import { localPlaylistService } from '../../services/local-playlist.service';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Boot'>;
@@ -36,10 +36,12 @@ export const BootScreen = ({ navigation }: Props): React.JSX.Element => {
       }
 
       const deviceUniqueId = await deviceIdentifierService.getDeviceUniqueId();
+      const macAddress = isMacAddress(deviceUniqueId) ? deviceUniqueId.toUpperCase() : undefined;
 
       const registerResponse = await pairingService.registerDevice({
         deviceName: 'Android TV Device',
-        deviceUniqueId
+        deviceUniqueId,
+        macAddress
       });
 
       signageStore.dispatch(

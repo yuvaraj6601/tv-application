@@ -13,6 +13,7 @@ export interface DeviceDetailModel {
   id: string;
   deviceName: string;
   deviceUniqueId: string;
+  macAddress: string | null;
   isPaired: boolean;
   status: 'ONLINE' | 'OFFLINE';
   lastSeen: string | null;
