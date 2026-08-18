@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     absence_timeout_seconds: int = 30
     face_match_distance_threshold: float = 0.2
 
+    camera_frame_width: int = 1280
+    camera_frame_height: int = 720
+
     data_dir: str = "data"
     rotation_check_interval_seconds: int = 3600
     sync_interval_seconds: int = 300
