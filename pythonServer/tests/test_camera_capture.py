@@ -10,6 +10,7 @@ class _FakeCvCapture:
         self._opened = opened
         self._read_success = read_success
         self.released = False
+        self.set_calls: list[tuple[int, float]] = []
 
     def isOpened(self) -> bool:  # noqa: N802 - matches cv2.VideoCapture API
         return self._opened
@@ -18,6 +19,10 @@ class _FakeCvCapture:
         if not self._read_success:
             return False, np.array([])
         return True, np.zeros((5, 5, 3), dtype=np.uint8)
+
+    def set(self, prop_id: int, value: float) -> bool:
+        self.set_calls.append((prop_id, value))
+        return True
 
     def release(self) -> None:
         self.released = True
@@ -44,6 +49,17 @@ def test_failure_device_fails_to_open_raises_clear_error(monkeypatch) -> None:
 
     with pytest.raises(CameraCaptureError, match="Failed to open camera device"):
         capture.open()
+
+
+def test_happy_path_open_applies_requested_resolution(monkeypatch) -> None:
+    fake_capture = _FakeCvCapture(opened=True)
+    monkeypatch.setattr(camera_capture.cv2, "VideoCapture", lambda index: fake_capture)
+
+    capture = CameraCapture(device_index=0, frame_width=1280, frame_height=720)
+    capture.open()
+
+    assert (camera_capture.cv2.CAP_PROP_FRAME_WIDTH, 1280) in fake_capture.set_calls
+    assert (camera_capture.cv2.CAP_PROP_FRAME_HEIGHT, 720) in fake_capture.set_calls
 
 
 def test_failure_read_frame_before_open_raises_clear_error() -> None:

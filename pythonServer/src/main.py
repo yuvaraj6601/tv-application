@@ -98,13 +98,14 @@ async def run() -> None:
         seconds=settings.rotation_check_interval_seconds,
     )
     scheduler.add_job(
-        lambda: asyncio.ensure_future(sync_pending(SessionLocal, settings.data_dir, pi_id)),
+        sync_pending,
         "interval",
         seconds=settings.sync_interval_seconds,
+        args=[SessionLocal, settings.data_dir, pi_id],
     )
     scheduler.start()
 
-    capture = CameraCapture()
+    capture = CameraCapture(frame_width=settings.camera_frame_width, frame_height=settings.camera_frame_height)
     capture.open()
     try:
         while True:
