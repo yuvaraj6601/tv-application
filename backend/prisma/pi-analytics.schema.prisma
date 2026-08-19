@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/pi-analytics-client"
+  output   = "../node_modules/.prisma/pi-analytics-client"
 }
 
 datasource db {

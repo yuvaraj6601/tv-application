@@ -1,3 +1,3 @@
-import { PrismaClient } from './generated/pi-analytics-client';
+import { PrismaClient } from '.prisma/pi-analytics-client';
 
 export const piAnalyticsPrisma = new PrismaClient();
