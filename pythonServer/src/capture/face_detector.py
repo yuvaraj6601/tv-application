@@ -28,7 +28,7 @@ _face_analysis: _FaceAnalysis | None = None
 def _load_face_analysis() -> _FaceAnalysis:
     from insightface.app import FaceAnalysis
 
-    raw_analysis = FaceAnalysis(name="buffalo_s")
+    raw_analysis = FaceAnalysis(name="buffalo_l")
     raw_analysis.prepare(ctx_id=-1, det_size=(640, 640))
 
     analysis: _FaceAnalysis = raw_analysis
