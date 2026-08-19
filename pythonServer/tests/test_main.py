@@ -35,7 +35,7 @@ def test_resolve_pi_id_local_uses_configured_value(monkeypatch) -> None:
     assert pi_id == "local-dev-test"
 
 
-def test_process_frame_happy_path_records_presence_for_detected_face(tmp_path, monkeypatch) -> None:
+def test_process_frame_happy_path_records_presence_for_detected_face(monkeypatch) -> None:
     frame = np.zeros((10, 10, 3), dtype=np.uint8)
     fake_face = SimpleNamespace(
         embedding=np.array([0.1, 0.2, 0.3]), bbox=np.array([0.0, 0.0, 10.0, 10.0]), age=30.0, gender=1
@@ -46,14 +46,15 @@ def test_process_frame_happy_path_records_presence_for_detected_face(tmp_path, m
     registry = UserRegistry()
     tracker = SessionTracker()
 
-    main.process_frame(frame, registry, tracker, tmp_path, distance_threshold=0.5, now=NOW)
+    new_records = main.process_frame(frame, registry, tracker, distance_threshold=0.5, now=NOW)
 
+    assert len(new_records) == 1
     closed = tracker.close_expired_sessions(NOW, absence_timeout_seconds=0)
     assert len(closed) == 1
     assert closed[0].started_at == NOW
 
 
-def test_process_frame_boundary_no_faces_records_nothing(tmp_path, monkeypatch) -> None:
+def test_process_frame_boundary_no_faces_records_nothing(monkeypatch) -> None:
     frame = np.zeros((10, 10, 3), dtype=np.uint8)
 
     monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis([]))
@@ -61,8 +62,9 @@ def test_process_frame_boundary_no_faces_records_nothing(tmp_path, monkeypatch) 
     registry = UserRegistry()
     tracker = SessionTracker()
 
-    main.process_frame(frame, registry, tracker, tmp_path, distance_threshold=0.5, now=NOW)
+    new_records = main.process_frame(frame, registry, tracker, distance_threshold=0.5, now=NOW)
 
+    assert new_records == {}
     closed = tracker.close_expired_sessions(NOW, absence_timeout_seconds=0)
     assert closed == []
 
@@ -70,8 +72,11 @@ def test_process_frame_boundary_no_faces_records_nothing(tmp_path, monkeypatch) 
 def test_flush_expired_sessions_happy_path_writes_closed_sessions(tmp_path) -> None:
     tracker = SessionTracker()
     tracker.record_presence("visitor-1", NOW)
+    from datetime import timedelta
 
-    closed = main.flush_expired_sessions(tracker, tmp_path, absence_timeout_seconds=0, now=NOW)
+    tracker.record_presence("visitor-1", NOW + timedelta(seconds=5))
+
+    closed = main.flush_expired_sessions(tracker, tmp_path, absence_timeout_seconds=0, now=NOW + timedelta(seconds=5))
 
     assert len(closed) == 1
     file_path = tmp_path / "temporaryData" / "2026-08-05" / "sessions.jsonl"
@@ -87,6 +92,65 @@ def test_flush_expired_sessions_boundary_nothing_expired_writes_nothing(tmp_path
 
     assert closed == []
     assert not (tmp_path / "temporaryData" / "2026-08-05" / "sessions.jsonl").exists()
+
+
+def test_conflict_zero_duration_session_is_discarded_and_not_written(tmp_path) -> None:
+    tracker = SessionTracker()
+    tracker.record_presence("visitor-1", NOW)
+
+    closed = main.flush_expired_sessions(tracker, tmp_path, absence_timeout_seconds=0, now=NOW)
+
+    assert closed == []
+    assert not (tmp_path / "temporaryData" / "2026-08-05" / "sessions.jsonl").exists()
+
+
+def test_conflict_zero_duration_new_visitor_is_discarded_and_not_written(tmp_path) -> None:
+    from src.storage.daily_writer import NewVisitorRecord
+
+    tracker = SessionTracker()
+    tracker.record_presence("visitor-1", NOW)
+    pending_new_visitors = {
+        "visitor-1": NewVisitorRecord(
+            visitor_id="visitor-1", embedding=[1.0, 0.0, 0.0], first_seen_at=NOW, age=28, gender="male"
+        )
+    }
+
+    closed = main.flush_expired_sessions(
+        tracker, tmp_path, absence_timeout_seconds=0, now=NOW, pending_new_visitors=pending_new_visitors
+    )
+
+    assert closed == []
+    assert pending_new_visitors == {}
+    assert not (tmp_path / "temporaryData" / "2026-08-05" / "visitors.jsonl").exists()
+
+
+def test_happy_path_nonzero_duration_new_visitor_is_written(tmp_path) -> None:
+    from datetime import timedelta
+
+    from src.storage.daily_writer import NewVisitorRecord
+
+    tracker = SessionTracker()
+    tracker.record_presence("visitor-1", NOW)
+    tracker.record_presence("visitor-1", NOW + timedelta(seconds=5))
+    pending_new_visitors = {
+        "visitor-1": NewVisitorRecord(
+            visitor_id="visitor-1", embedding=[1.0, 0.0, 0.0], first_seen_at=NOW, age=28, gender="male"
+        )
+    }
+
+    closed = main.flush_expired_sessions(
+        tracker,
+        tmp_path,
+        absence_timeout_seconds=0,
+        now=NOW + timedelta(seconds=5),
+        pending_new_visitors=pending_new_visitors,
+    )
+
+    assert len(closed) == 1
+    assert pending_new_visitors == {}
+    file_path = tmp_path / "temporaryData" / "2026-08-05" / "visitors.jsonl"
+    assert file_path.exists()
+    assert len(file_path.read_text(encoding="utf-8").strip().splitlines()) == 1
 
 
 def test_rotate_stale_days_happy_path_rotates_yesterday(tmp_path) -> None:

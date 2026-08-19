@@ -1,9 +1,8 @@
 import uuid
 from datetime import datetime
-from pathlib import Path
 
 from src.recognition.face_matcher import KnownFace, match_face
-from src.storage.daily_writer import NewVisitorRecord, write_new_visitor
+from src.storage.daily_writer import NewVisitorRecord
 
 
 class UserRegistry:
@@ -15,24 +14,20 @@ class UserRegistry:
         embedding: list[float],
         first_seen_at: datetime,
         distance_threshold: float,
-        data_dir: str | Path,
         age: int,
         gender: str,
-    ) -> str:
+    ) -> tuple[str, NewVisitorRecord | None]:
         matched_visitor_id = match_face(embedding, self._known_faces, distance_threshold)
         if matched_visitor_id is not None:
-            return matched_visitor_id
+            return matched_visitor_id, None
 
         new_visitor_id = str(uuid.uuid4())
         self._known_faces.append(KnownFace(visitor_id=new_visitor_id, embedding=embedding))
-        write_new_visitor(
-            NewVisitorRecord(
-                visitor_id=new_visitor_id,
-                embedding=embedding,
-                first_seen_at=first_seen_at,
-                age=age,
-                gender=gender,
-            ),
-            data_dir,
+        record = NewVisitorRecord(
+            visitor_id=new_visitor_id,
+            embedding=embedding,
+            first_seen_at=first_seen_at,
+            age=age,
+            gender=gender,
         )
-        return new_visitor_id
+        return new_visitor_id, record

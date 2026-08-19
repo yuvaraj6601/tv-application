@@ -15,7 +15,7 @@ from src.db.repository import get_known_faces
 from src.logging_config import configure_logging
 from src.recognition.user_registry import UserRegistry
 from src.session.session_tracker import FinalizedSession, SessionTracker
-from src.storage.daily_writer import write_session
+from src.storage.daily_writer import NewVisitorRecord, write_new_visitor, write_session
 from src.storage.db_syncer import sync_pending
 from src.storage.folder_rotator import rotate_day
 
@@ -32,15 +32,18 @@ def process_frame(
     frame: np.ndarray,
     registry: UserRegistry,
     tracker: SessionTracker,
-    data_dir: str | Path,
     distance_threshold: float,
     now: datetime,
-) -> None:
+) -> dict[str, NewVisitorRecord]:
+    new_records: dict[str, NewVisitorRecord] = {}
     for detection in detect_faces(frame):
-        visitor_id = registry.identify_or_register(
-            detection.embedding, now, distance_threshold, data_dir, detection.age, detection.gender
+        visitor_id, new_record = registry.identify_or_register(
+            detection.embedding, now, distance_threshold, detection.age, detection.gender
         )
+        if new_record is not None:
+            new_records[visitor_id] = new_record
         tracker.record_presence(visitor_id, now)
+    return new_records
 
 
 def flush_expired_sessions(
@@ -48,11 +51,20 @@ def flush_expired_sessions(
     data_dir: str | Path,
     absence_timeout_seconds: int,
     now: datetime,
+    pending_new_visitors: dict[str, NewVisitorRecord] | None = None,
 ) -> list[FinalizedSession]:
     closed = tracker.close_expired_sessions(now, absence_timeout_seconds)
+    written: list[FinalizedSession] = []
     for session in closed:
+        pending_record = pending_new_visitors.pop(session.visitor_id, None) if pending_new_visitors else None
+        if session.duration_seconds == 0:
+            continue
+
         write_session(session, data_dir)
-    return closed
+        if pending_record is not None:
+            write_new_visitor(pending_record, data_dir)
+        written.append(session)
+    return written
 
 
 def rotate_stale_days(data_dir: str | Path, today: date) -> list[Path]:
@@ -90,6 +102,7 @@ async def run() -> None:
         known_faces = await get_known_faces(session, pi_id)
     registry = UserRegistry(known_faces=known_faces)
     tracker = SessionTracker()
+    pending_new_visitors: dict[str, NewVisitorRecord] = {}
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
@@ -111,8 +124,11 @@ async def run() -> None:
         while True:
             frame = capture.read_frame()
             now = datetime.now()
-            process_frame(frame, registry, tracker, settings.data_dir, settings.face_match_distance_threshold, now)
-            flush_expired_sessions(tracker, settings.data_dir, settings.absence_timeout_seconds, now)
+            new_records = process_frame(frame, registry, tracker, settings.face_match_distance_threshold, now)
+            pending_new_visitors.update(new_records)
+            flush_expired_sessions(
+                tracker, settings.data_dir, settings.absence_timeout_seconds, now, pending_new_visitors
+            )
             await asyncio.sleep(settings.capture_interval_seconds)
     finally:
         capture.close()
