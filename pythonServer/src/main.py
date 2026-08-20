@@ -2,6 +2,7 @@ import asyncio
 import logging
 from datetime import date, datetime
 from pathlib import Path
+from typing import Callable
 
 import getmac
 import numpy as np
@@ -34,6 +35,7 @@ def process_frame(
     tracker: SessionTracker,
     distance_threshold: float,
     now: datetime,
+    on_detection: Callable[[str, tuple[int, int, int, int]], None] | None = None,
 ) -> dict[str, NewVisitorRecord]:
     new_records: dict[str, NewVisitorRecord] = {}
     for detection in detect_faces(frame):
@@ -43,6 +45,8 @@ def process_frame(
         if new_record is not None:
             new_records[visitor_id] = new_record
         tracker.record_presence(visitor_id, now)
+        if on_detection is not None:
+            on_detection(visitor_id, detection.bounding_box)
     return new_records
 
 
@@ -118,21 +122,41 @@ async def run() -> None:
     )
     scheduler.start()
 
+    debug_stream_task: asyncio.Task[None] | None = None
+    if settings.debug_stream_enabled:
+        from src.debug.stream_server import set_latest_frame, start_debug_stream_server
+
+        debug_stream_task = await start_debug_stream_server(settings.debug_stream_host, settings.debug_stream_port)
+
     capture = CameraCapture(frame_width=settings.camera_frame_width, frame_height=settings.camera_frame_height)
     capture.open()
     try:
         while True:
             frame = capture.read_frame()
             now = datetime.now()
-            new_records = process_frame(frame, registry, tracker, settings.face_match_distance_threshold, now)
+            detections_for_debug: list[tuple[tuple[int, int, int, int], str]] = []
+            on_detection = (
+                (lambda visitor_id, bbox: detections_for_debug.append((bbox, visitor_id)))
+                if settings.debug_stream_enabled
+                else None
+            )
+            new_records = process_frame(
+                frame, registry, tracker, settings.face_match_distance_threshold, now, on_detection
+            )
             pending_new_visitors.update(new_records)
             flush_expired_sessions(
                 tracker, settings.data_dir, settings.absence_timeout_seconds, now, pending_new_visitors
             )
+            if settings.debug_stream_enabled:
+                from src.debug.annotate import annotate_frame
+
+                await set_latest_frame(annotate_frame(frame, detections_for_debug))
             await asyncio.sleep(settings.capture_interval_seconds)
     finally:
         capture.close()
         scheduler.shutdown()
+        if debug_stream_task is not None:
+            debug_stream_task.cancel()
 
 
 if __name__ == "__main__":

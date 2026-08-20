@@ -24,6 +24,11 @@ dev = [
     "aiosqlite",
     "mypy",
 ]
+# Testing-only debug camera stream (test/camera-debug-stream branch) — not for production use.
+debug = [
+    "fastapi",
+    "uvicorn",
+]
 
 [tool.mypy]
 strict = true

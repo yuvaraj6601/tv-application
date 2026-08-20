@@ -19,5 +19,10 @@ class Settings(BaseSettings):
     rotation_check_interval_seconds: int = 3600
     sync_interval_seconds: int = 300
 
+    # Testing-only debug camera stream (test/camera-debug-stream branch). Never enable in production.
+    debug_stream_enabled: bool = False
+    debug_stream_host: str = "0.0.0.0"
+    debug_stream_port: int = 8765
+
 
 settings = Settings()
