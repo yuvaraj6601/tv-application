@@ -27,5 +27,9 @@ export const storageService = {
   deleteAsset: async (storageKey: string): Promise<void> => {
     const absolutePath = path.resolve(process.cwd(), storageKey);
     await fs.unlink(absolutePath).catch(() => undefined);
+  },
+  deleteDeviceAssets: async (deviceId: string): Promise<void> => {
+    const deviceFolder = path.join(uploadsRoot, deviceId);
+    await fs.rm(deviceFolder, { recursive: true, force: true }).catch(() => undefined);
   }
 };

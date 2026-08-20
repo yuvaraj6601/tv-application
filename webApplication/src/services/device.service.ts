@@ -41,6 +41,12 @@ export const deviceService = {
   updateOrientation: async (deviceId: string, orientation: DeviceOrientation): Promise<void> => {
     await dashboardAxios.patch(`/api/v1/device/${deviceId}/orientation`, { orientation });
   },
+  updateDeviceName: async (deviceId: string, deviceName: string): Promise<string> => {
+    const response = await dashboardAxios.patch<ApiResponseModel<{ deviceName: string }>>(`/api/v1/device/${deviceId}/name`, {
+      deviceName
+    });
+    return response.data.data.deviceName;
+  },
   updatePiId: async (deviceId: string, piId: string): Promise<string> => {
     const response = await dashboardAxios.patch<ApiResponseModel<{ piId: string }>>(`/api/v1/device/${deviceId}/pi-id`, {
       piId
@@ -50,5 +56,8 @@ export const deviceService = {
   getAnalytics: async (deviceId: string): Promise<DeviceAnalyticsModel | null> => {
     const response = await dashboardAxios.get<ApiResponseModel<DeviceAnalyticsModel | null>>(`/api/v1/device/${deviceId}/analytics`);
     return response.data.data;
+  },
+  deleteDevice: async (deviceId: string): Promise<void> => {
+    await dashboardAxios.delete(`/api/v1/device/${deviceId}`);
   }
 };

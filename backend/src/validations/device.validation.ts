@@ -31,3 +31,7 @@ export const LOCAL_DEV_PI_ID = 'local-dev-test';
 export const devicePiIdUpdateValidation = Joi.object({
   piId: Joi.string().max(17).required()
 });
+
+export const deviceNameUpdateValidation = Joi.object({
+  deviceName: Joi.string().min(2).max(120).required()
+});

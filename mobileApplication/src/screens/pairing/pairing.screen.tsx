@@ -11,6 +11,7 @@ import { setPlaylist } from '../../store/slices/playlist.slice';
 import { syncService } from '../../services/sync.service';
 import { heartbeatService } from '../../services/heartbeat.service';
 import { localPlaylistService } from '../../services/local-playlist.service';
+import { TvRotatedView } from '../../components/common/tv-rotated-view/tv-rotated-view.component';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Pairing'>;
 
@@ -48,11 +49,15 @@ export const PairingScreen = ({ navigation }: Props): React.JSX.Element => {
   }, [deviceToken, deviceId, navigation]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Pair This Device</Text>
-      <Text style={styles.code}>{pairingCode || '----'}</Text>
-      <Text style={styles.subtitle}>Enter this code in the admin dashboard.</Text>
-    </View>
+    <TvRotatedView>
+      {() => (
+        <View style={styles.container}>
+          <Text style={styles.title}>Pair This Device</Text>
+          <Text style={styles.code}>{pairingCode || '----'}</Text>
+          <Text style={styles.subtitle}>Enter this code in the admin dashboard.</Text>
+        </View>
+      )}
+    </TvRotatedView>
   );
 };
 

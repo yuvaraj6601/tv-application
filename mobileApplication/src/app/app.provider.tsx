@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider, useSelector } from 'react-redux';
 import NetInfo from '@react-native-community/netinfo';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 import Orientation from 'react-native-orientation-locker';
@@ -41,6 +42,10 @@ const OrientedApp = (): React.JSX.Element => {
   const orientation = useSelector((state: RootState) => state.device.orientation);
 
   useEffect(() => {
+    if (Platform.isTV) {
+      return;
+    }
+
     applyNativeOrientation(orientation);
   }, [orientation]);
 

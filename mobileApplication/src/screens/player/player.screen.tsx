@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import Video from 'react-native-video';
 import WebView from 'react-native-webview';
 import { useDispatch, useSelector } from 'react-redux';
@@ -12,6 +12,7 @@ import { syncService } from '../../services/sync.service';
 import { heartbeatService } from '../../services/heartbeat.service';
 import { localPlaylistService } from '../../services/local-playlist.service';
 import { DeviceOrientation } from '../../types/app.types';
+import { TvRotatedSize, TvRotatedView } from '../../components/common/tv-rotated-view/tv-rotated-view.component';
 
 export const PlayerScreen = (): React.JSX.Element => {
   const dispatch = useDispatch();
@@ -110,36 +111,47 @@ export const PlayerScreen = (): React.JSX.Element => {
 
   if (!currentItem) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.placeholder}>Waiting for content...</Text>
-      </View>
+      <TvRotatedView>
+        {() => (
+          <View style={styles.container}>
+            <Text style={styles.placeholder}>Waiting for content...</Text>
+          </View>
+        )}
+      </TvRotatedView>
     );
   }
 
-  if (currentItem.type === 'IMAGE') {
-    return <Image style={styles.media} source={{ uri: `file://${currentItem.localPath}` }} resizeMode="stretch" />;
-  }
+  const renderMedia = (rotatedSize: TvRotatedSize | null): React.JSX.Element => {
+    const sizedMediaStyle = rotatedSize ? [styles.media, { flex: undefined, width: rotatedSize.width, height: rotatedSize.height }] : styles.media;
 
-  if (currentItem.type === 'VIDEO') {
-    const isSingleItemPlaylist = items.length === 1;
-    return (
-      <Video
-        source={{ uri: `file://${currentItem.localPath}` }}
-        style={styles.media}
-        resizeMode="contain"
-        repeat={isSingleItemPlaylist}
-        controls={false}
-        onEnd={() => {
-          if (!isSingleItemPlaylist) {
-            dispatch(moveNext());
-          }
-        }}
-      />
-    );
-  }
+    if (currentItem.type === 'IMAGE') {
+      return <Image style={sizedMediaStyle} source={{ uri: `file://${currentItem.localPath}` }} resizeMode="contain" />;
+    }
 
-  const webpageUri = currentItem.localPath ? `file://${currentItem.localPath}` : currentItem.url;
-  return <WebView source={{ uri: webpageUri }} style={styles.media} javaScriptEnabled domStorageEnabled />;
+    if (currentItem.type === 'VIDEO') {
+      const isSingleItemPlaylist = items.length === 1;
+      return (
+        <Video
+          source={{ uri: `file://${currentItem.localPath}` }}
+          style={sizedMediaStyle}
+          resizeMode="contain"
+          repeat={isSingleItemPlaylist}
+          controls={false}
+          useTextureView={Platform.isTV}
+          onEnd={() => {
+            if (!isSingleItemPlaylist) {
+              dispatch(moveNext());
+            }
+          }}
+        />
+      );
+    }
+
+    const webpageUri = currentItem.localPath ? `file://${currentItem.localPath}` : currentItem.url;
+    return <WebView source={{ uri: webpageUri }} style={sizedMediaStyle} javaScriptEnabled domStorageEnabled />;
+  };
+
+  return <TvRotatedView>{rotatedSize => renderMedia(rotatedSize)}</TvRotatedView>;
 };
 
 const styles = StyleSheet.create({

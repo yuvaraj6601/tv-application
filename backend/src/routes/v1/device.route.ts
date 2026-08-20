@@ -6,6 +6,7 @@ import { validationMiddleware } from '../../middleware/validation.middleware';
 import { rateLimitMiddleware } from '../../middleware/rate-limit.middleware';
 import {
   deviceHeartbeatValidation,
+  deviceNameUpdateValidation,
   deviceOrientationUpdateValidation,
   devicePairValidation,
   deviceParamValidation,
@@ -61,6 +62,14 @@ deviceRoute.get(
   deviceController.syncContent
 );
 deviceRoute.get('/:deviceId', authMiddleware, requireRole(['ADMIN']), validationMiddleware(deviceParamValidation, 'params'), deviceController.getById);
+deviceRoute.delete(
+  '/:deviceId',
+  authMiddleware,
+  requireRole(['ADMIN']),
+  validationMiddleware(deviceParamValidation, 'params'),
+  requireAdminDeviceAccess(),
+  deviceController.deleteDevice
+);
 deviceRoute.patch(
   '/:deviceId/orientation',
   authMiddleware,
@@ -69,6 +78,15 @@ deviceRoute.patch(
   validationMiddleware(deviceOrientationUpdateValidation),
   requireAdminDeviceAccess(),
   deviceController.updateOrientation
+);
+deviceRoute.patch(
+  '/:deviceId/name',
+  authMiddleware,
+  requireRole(['ADMIN']),
+  validationMiddleware(deviceParamValidation, 'params'),
+  validationMiddleware(deviceNameUpdateValidation),
+  requireAdminDeviceAccess(),
+  deviceController.updateDeviceName
 );
 deviceRoute.patch(
   '/:deviceId/pi-id',

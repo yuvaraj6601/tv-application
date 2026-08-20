@@ -11,6 +11,13 @@ export const isValidMacAddress = (value: string): boolean => MAC_ADDRESS_PATTERN
 
 export const isValidPiId = (value: string): boolean => value.trim().length > 0 && value.trim().length <= PI_ID_MAX_LENGTH;
 
+// Matches backend's deviceNameUpdateValidation (Joi.string().min(2).max(120)).
+const DEVICE_NAME_MIN_LENGTH = 2;
+const DEVICE_NAME_MAX_LENGTH = 120;
+
+export const isValidDeviceName = (value: string): boolean =>
+  value.trim().length >= DEVICE_NAME_MIN_LENGTH && value.trim().length <= DEVICE_NAME_MAX_LENGTH;
+
 export const formatWatchTime = (totalSeconds: number): string => {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

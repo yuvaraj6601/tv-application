@@ -11,6 +11,7 @@ import { syncService } from '../../services/sync.service';
 import { setPlaylist } from '../../store/slices/playlist.slice';
 import { deviceIdentifierService, isMacAddress } from '../../services/device-identifier.service';
 import { localPlaylistService } from '../../services/local-playlist.service';
+import { TvRotatedView } from '../../components/common/tv-rotated-view/tv-rotated-view.component';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Boot'>;
 
@@ -82,10 +83,14 @@ export const BootScreen = ({ navigation }: Props): React.JSX.Element => {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#0f172a" />
-      <Text style={styles.text}>Initializing signage player...</Text>
-    </View>
+    <TvRotatedView>
+      {() => (
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color="#0f172a" />
+          <Text style={styles.text}>Initializing signage player...</Text>
+        </View>
+      )}
+    </TvRotatedView>
   );
 };
 

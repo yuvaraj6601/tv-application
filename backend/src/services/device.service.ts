@@ -2,6 +2,7 @@ import { DeviceOrientation } from '@prisma/client';
 import { prisma } from '../db';
 import { piAnalyticsPrisma } from '../db-pi-analytics';
 import { socketGateway } from '../socket/socket.gateway';
+import { storageService } from './storage.service';
 
 export const deviceService = {
   getDeviceList: async (userId: string) => {
@@ -135,6 +136,39 @@ export const deviceService = {
 
     socketGateway.emitOrientationUpdated(payload.deviceId, updated.orientation);
     return updated.orientation;
+  },
+  updateDeviceName: async (payload: { userId: string; deviceId: string; deviceName: string }): Promise<string | null> => {
+    const device = await prisma.device.findFirst({
+      where: { id: payload.deviceId, userId: payload.userId },
+      select: { id: true }
+    });
+
+    if (!device) {
+      return null;
+    }
+
+    const updated = await prisma.device.update({
+      where: { id: payload.deviceId },
+      data: { deviceName: payload.deviceName },
+      select: { deviceName: true }
+    });
+
+    return updated.deviceName;
+  },
+  deleteDevice: async (payload: { userId: string; deviceId: string }): Promise<boolean> => {
+    const device = await prisma.device.findFirst({
+      where: { id: payload.deviceId, userId: payload.userId },
+      select: { id: true }
+    });
+
+    if (!device) {
+      return false;
+    }
+
+    await storageService.deleteDeviceAssets(payload.deviceId);
+    await prisma.device.delete({ where: { id: payload.deviceId } });
+
+    return true;
   },
   getOrientation: async (deviceId: string): Promise<DeviceOrientation> => {
     const device = await prisma.device.findUnique({

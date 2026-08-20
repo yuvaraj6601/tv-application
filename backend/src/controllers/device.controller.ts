@@ -141,6 +141,50 @@ export const deviceController = {
       data: { orientation }
     });
   },
+  updateDeviceName: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    if (!req.auth) {
+      res.status(401).json({ status: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const deviceName = await deviceService.updateDeviceName({
+      userId: req.auth.sub,
+      deviceId: getParamValue(req.params.deviceId),
+      deviceName: req.body.deviceName
+    });
+
+    if (!deviceName) {
+      res.status(404).json({ status: false, message: 'Device not found' });
+      return;
+    }
+
+    res.status(200).json({
+      status: true,
+      message: 'Device name updated successfully',
+      data: { deviceName }
+    });
+  },
+  deleteDevice: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    if (!req.auth) {
+      res.status(401).json({ status: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const deleted = await deviceService.deleteDevice({
+      userId: req.auth.sub,
+      deviceId: getParamValue(req.params.deviceId)
+    });
+
+    if (!deleted) {
+      res.status(404).json({ status: false, message: 'Device not found' });
+      return;
+    }
+
+    res.status(200).json({
+      status: true,
+      message: 'Device deleted successfully'
+    });
+  },
   updatePiId: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     if (!req.auth) {
       res.status(401).json({ status: false, message: 'Unauthorized' });

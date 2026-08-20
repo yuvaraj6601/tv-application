@@ -5,6 +5,7 @@ apply plugin: "com.facebook.react"
 react {
     // Hermes is now enabled by default. Disable by adding `hermesEnabled = false`
     autolinkLibrariesWithApp()
+    entryFile = file("../../index.ts")
 }
 
 android {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DeviceContentItemModel, contentService } from '../../../services/content.service';
 import { DeviceDetailModel, DeviceOrientation, deviceService } from '../../../services/device.service';
@@ -8,7 +8,7 @@ import { Toast } from '../../../components/common/toast/toast.component';
 import { DonutChart } from '../../../components/common/donut-chart/donut-chart.component';
 import { BarChart } from '../../../components/common/bar-chart/bar-chart.component';
 import { STRINGS } from '../../../constants/strings.constant';
-import { formatWatchTime, isValidPiId } from '../../../utils/functions.utils';
+import { formatWatchTime, isValidDeviceName, isValidPiId } from '../../../utils/functions.utils';
 import './device-detail.screen.scss';
 
 export const DeviceDetailScreen = (): React.JSX.Element => {
@@ -24,6 +24,9 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
   const [editingContentId, setEditingContentId] = useState<string | null>(null);
   const [editDurationValue, setEditDurationValue] = useState<string>('10');
   const [piIdState, setPiIdState] = useState({ value: '', isSaving: false, error: '' });
+  const [deviceNameState, setDeviceNameState] = useState({ value: '', isEditing: false, isSaving: false, error: '' });
+  const [deleteDeviceState, setDeleteDeviceState] = useState({ isModalOpen: false, isDeleting: false, error: '' });
+  const isDeletingDeviceRef = useRef(false);
   const [toastState, setToastState] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [analyticsState, setAnalyticsState] = useState<{
     data: DeviceAnalyticsModel | null;
@@ -70,6 +73,22 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
     return fallbackMessage;
   };
 
+  const getResponseStatus = (error: unknown): number | null => {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'response' in error &&
+      typeof error.response === 'object' &&
+      error.response !== null &&
+      'status' in error.response &&
+      typeof error.response.status === 'number'
+    ) {
+      return error.response.status;
+    }
+
+    return null;
+  };
+
   const normalizeWebUrl = (value: string): string | null => {
     const trimmedUrl = value.trim();
 
@@ -103,6 +122,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
       setItems(response);
       const detail = await deviceService.getById(deviceId);
       setDeviceDetail(detail);
+      setDeviceNameState(prev => ({ ...prev, value: detail.deviceName }));
     } catch (_error) {
       setErrorMessage('Failed to load device details.');
     } finally {
@@ -156,6 +176,89 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
         isSaving: false,
         error: message
       }));
+      setToastState({ message, type: 'error' });
+    }
+  };
+
+  const handleStartEditDeviceName = (): void => {
+    setDeviceNameState({ value: deviceDetail?.deviceName || '', isEditing: true, isSaving: false, error: '' });
+  };
+
+  const handleCancelEditDeviceName = (): void => {
+    setDeviceNameState({ value: deviceDetail?.deviceName || '', isEditing: false, isSaving: false, error: '' });
+  };
+
+  const handleSaveDeviceName = async (): Promise<void> => {
+    if (!deviceId) {
+      return;
+    }
+
+    const trimmedName = deviceNameState.value.trim();
+    if (!isValidDeviceName(trimmedName)) {
+      setDeviceNameState(prev => ({ ...prev, error: STRINGS.devices.detail.deviceNameInvalid }));
+      return;
+    }
+
+    if (trimmedName === (deviceDetail?.deviceName || '')) {
+      setDeviceNameState(prev => ({ ...prev, isEditing: false, error: '' }));
+      return;
+    }
+
+    setDeviceNameState(prev => ({ ...prev, isSaving: true, error: '' }));
+    try {
+      const updatedDeviceName = await deviceService.updateDeviceName(deviceId, trimmedName);
+      setDeviceDetail(prev => (prev ? { ...prev, deviceName: updatedDeviceName } : prev));
+      setDeviceNameState({ value: updatedDeviceName, isEditing: false, isSaving: false, error: '' });
+      setToastState({ message: STRINGS.devices.detail.deviceNameSaveSuccess, type: 'success' });
+    } catch (error: unknown) {
+      const message = getRequestErrorMessage(error, STRINGS.devices.detail.deviceNameSaveFailed);
+      setDeviceNameState(prev => ({ ...prev, isSaving: false, error: message }));
+      setToastState({ message, type: 'error' });
+    }
+  };
+
+  const handleDeviceNameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSaveDeviceName().catch(() => undefined);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      handleCancelEditDeviceName();
+    }
+  };
+
+  const handleOpenDeleteDeviceModal = (): void => {
+    setDeleteDeviceState({ isModalOpen: true, isDeleting: false, error: '' });
+  };
+
+  const handleCloseDeleteDeviceModal = (): void => {
+    if (deleteDeviceState.isDeleting) {
+      return;
+    }
+
+    setDeleteDeviceState({ isModalOpen: false, isDeleting: false, error: '' });
+  };
+
+  const handleConfirmDeleteDevice = async (): Promise<void> => {
+    if (!deviceId || isDeletingDeviceRef.current) {
+      return;
+    }
+
+    isDeletingDeviceRef.current = true;
+    setDeleteDeviceState(prev => ({ ...prev, isDeleting: true, error: '' }));
+    try {
+      await deviceService.deleteDevice(deviceId);
+      navigate('/devices');
+    } catch (error: unknown) {
+      if (getResponseStatus(error) === 404) {
+        // Device is already gone (e.g. a prior request already deleted it) — treat as success.
+        navigate('/devices');
+        return;
+      }
+
+      isDeletingDeviceRef.current = false;
+      const message = getRequestErrorMessage(error, STRINGS.devices.detail.deleteDeviceFailed);
+      setDeleteDeviceState(prev => ({ ...prev, isDeleting: false, error: message }));
       setToastState({ message, type: 'error' });
     }
   };
@@ -299,13 +402,69 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
           >
             Back to Device Fleet
           </button>
-          <h1>Device Workspace</h1>
+          {deviceNameState.isEditing ? (
+            <div className="device-detail-screen__title-edit">
+              <input
+                autoFocus
+                value={deviceNameState.value}
+                placeholder={STRINGS.devices.detail.deviceNamePlaceholder}
+                disabled={deviceNameState.isSaving}
+                onFocus={event => event.target.select()}
+                onChange={event => setDeviceNameState(prev => ({ ...prev, value: event.target.value, error: '' }))}
+                onKeyDown={handleDeviceNameKeyDown}
+              />
+              <button
+                type="button"
+                className="device-detail-screen__title-edit-save"
+                disabled={deviceNameState.isSaving || !isValidDeviceName(deviceNameState.value)}
+                onClick={handleSaveDeviceName}
+              >
+                {deviceNameState.isSaving ? <span className="button-spinner" aria-hidden="true" /> : null}
+                {deviceNameState.isSaving ? STRINGS.devices.detail.deviceNameSaving : STRINGS.devices.detail.deviceNameSaveButton}
+              </button>
+              <button type="button" disabled={deviceNameState.isSaving} onClick={handleCancelEditDeviceName}>
+                {STRINGS.devices.detail.deviceNameCancelButton}
+              </button>
+              {deviceNameState.error ? <p className="device-detail-screen__error" role="alert">{deviceNameState.error}</p> : null}
+            </div>
+          ) : (
+            <h1 className="device-detail-screen__title">
+              <span className="device-detail-screen__title-text">{deviceDetail?.deviceName || 'Device Workspace'}</span>
+              <button
+                type="button"
+                className="device-detail-screen__rename-button"
+                title={STRINGS.devices.detail.deviceNameEditButton}
+                onClick={handleStartEditDeviceName}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path
+                    d="M12 20h9"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M16.5 3.5a1.914 1.914 0 1 1 2.708 2.708L7.7 17.717l-3.75.75.75-3.75L16.5 3.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {STRINGS.devices.detail.deviceNameEditButton}
+              </button>
+            </h1>
+          )}
           <p>Configure media, playlist sequence, and viewing duration for this screen.</p>
         </div>
         <div className="device-detail-screen__identity">
           <p>Device ID: {deviceId}</p>
           <p>Unique ID: {deviceDetail?.deviceUniqueId || '-'}</p>
           <p>MAC Address: {deviceDetail?.macAddress || '-'}</p>
+          <button type="button" className="device-detail-screen__delete-button" onClick={handleOpenDeleteDeviceModal}>
+            {STRINGS.devices.detail.deleteDeviceButton}
+          </button>
         </div>
       </header>
       {errorMessage ? <p className="device-detail-screen__error">{errorMessage}</p> : null}
@@ -563,6 +722,25 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
             </div>
           </>
         )}
+      </Modal>
+
+      <Modal isOpen={deleteDeviceState.isModalOpen} title={STRINGS.devices.detail.deleteDeviceModalTitle} onClose={handleCloseDeleteDeviceModal}>
+        <p>{STRINGS.devices.detail.deleteDeviceModalBody}</p>
+        {deleteDeviceState.error ? <p className="device-detail-screen__error" role="alert">{deleteDeviceState.error}</p> : null}
+        <div className="modal-actions">
+          <button type="button" disabled={deleteDeviceState.isDeleting} onClick={handleCloseDeleteDeviceModal}>
+            {STRINGS.devices.detail.deleteDeviceCancelButton}
+          </button>
+          <button
+            type="button"
+            className="device-detail-screen__delete-confirm-button"
+            disabled={deleteDeviceState.isDeleting}
+            onClick={handleConfirmDeleteDevice}
+          >
+            {deleteDeviceState.isDeleting ? <span className="button-spinner" aria-hidden="true" /> : null}
+            {deleteDeviceState.isDeleting ? STRINGS.devices.detail.deleteDeviceDeleting : STRINGS.devices.detail.deleteDeviceConfirmButton}
+          </button>
+        </div>
       </Modal>
 
       {toastState ? (
