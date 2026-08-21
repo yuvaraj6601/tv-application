@@ -4,6 +4,7 @@ import { uploadMiddleware } from '../../middleware/upload.middleware';
 import { contentController } from '../../controllers/content.controller';
 import { validationMiddleware } from '../../middleware/validation.middleware';
 import {
+  contentAttachValidation,
   contentCreateValidation,
   contentDeleteParamsValidation,
   contentListParamsValidation,
@@ -29,6 +30,14 @@ contentRoute.post(
   validationMiddleware(contentCreateValidation),
   requireAdminDeviceAccess(),
   contentController.create
+);
+contentRoute.post(
+  '/attach',
+  authMiddleware,
+  requireRole(['ADMIN']),
+  validationMiddleware(contentAttachValidation),
+  requireAdminDeviceAccess(),
+  contentController.attach
 );
 contentRoute.patch(
   '/:contentId',

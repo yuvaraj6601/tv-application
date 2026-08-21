@@ -15,19 +15,20 @@ src/
   db.ts                 # Prisma singleton (prisma client) — main spatiabox_db
   db-pi-analytics.ts    # Prisma singleton (piAnalyticsPrisma) — read-only pythonServer DB, generated client at src/generated/pi-analytics-client (gitignored)
   routes/v1/
-    router.ts           # mounts auth, device, content routes
+    router.ts               # mounts auth, device, content routes
     auth.route.ts
     device.route.ts
-    content.route.ts
+    content.route.ts        # mounted at /device/:deviceId/content — playlist listing, upload+attach, unlink, reorder
+    content-library.route.ts # mounted at /content — user's content library: list, upload-to-library, delete-everywhere
   controllers/
     auth.controller.ts
     device.controller.ts
-    content.controller.ts
+    content.controller.ts   # handles both content.route.ts and content-library.route.ts
   services/
-    device.service.ts       # includes updatePiId(userId, deviceId, piId) -> string | null
-    content.service.ts
+    device.service.ts       # includes updatePiId(userId, deviceId, piId) -> string | null; deleteDevice never touches Content (see Content ownership below)
+    content.service.ts      # getByUserId (library), getByDeviceId (playlist, joins PlaylistItem), createInLibrary, createAndAttachToDevice, attachExisting, unlinkFromDevice, deleteContent (cascades PlaylistItem), updatePlaylistOrder
     pairing.service.ts
-    storage.service.ts
+    storage.service.ts      # uploadAsset keyed by userId (uploads/<userId>/...), not deviceId
     admin-bootstrap.service.ts
     pi-analytics.service.ts # getAnalytics(deviceId) -> PiAnalyticsResponse | null; reads the pythonServer DB via db-pi-analytics.ts, scoped by the device's piId
   middleware/
@@ -55,6 +56,8 @@ src/
 MySQL via Prisma v6. DB instance is the `prisma` singleton from `src/db.ts` — never call `new PrismaClient()` inline.
 
 Key models: `User`, `Device` (now has optional unique `piId` — Raspberry Pi MAC address, links to the pythonServer analytics DB; also has optional unique `macAddress` — the TV device's own hardware MAC, distinct from `piId`, captured at `/register` and used as the primary dedup key in `pairingService.registerDevice` so reinstalling the app reuses the same `Device` row instead of creating a duplicate), `Content`, `PlaylistItem`, `DeviceHeartbeat`.
+
+**Content ownership**: `Content` belongs to `User` (`Content.userId`, cascade on User delete), not `Device` — a user's uploaded images/videos form one shared library across all of their devices. `PlaylistItem` (`deviceId`, `contentId`, `order`, unique on `[deviceId, order]`) is the real device↔content join and the source of truth for per-device playlist order; `Content` itself has no per-device ordering field. Deleting a `Device` only cascades its `PlaylistItem` rows (unlinks the playlist) — it never deletes `Content` or its uploaded assets. Deleting a `Content` row cascades every `PlaylistItem` referencing it, unlinking it from every device that had it, and its asset is removed from disk via `storageService.deleteAsset`.
 
 A second, read-only Prisma schema (`prisma/pi-analytics.schema.prisma`, client at `src/db-pi-analytics.ts`) points at the pythonServer's MySQL DB (`PI_ANALYTICS_DATABASE_URL`) and mirrors `pythonServer/src/db/models.py` exactly (`Visitor`, `Session`, `SyncLog` → tables `visitors`/`sessions`/`sync_log`). Migrations for that DB are owned by `pythonServer/alembic` — never run `prisma migrate` against it from here; `prisma:push:pi-analytics` is dev/test-only convenience for local schema sync.
 

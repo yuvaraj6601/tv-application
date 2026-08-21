@@ -282,3 +282,38 @@ Ran the real pipeline against the developer's local webcam (`uv run python -m sr
 ### Emotion/expression detection
 
 Explicitly out of scope — `buffalo_s` has no expression model; would require a separate dedicated model (e.g. FER+, mini-Xception) added as its own pipeline step, not covered here.
+
+## Feature: Admin dashboard sidebar + shared content library — 2026-08-21
+
+### User story
+
+As an admin, I want a sidebar with **Device Management** and **Content Management** sections so I can manage my devices and my media library separately. Content Management shows every image/video uploaded across all of my devices. Device Detail's playlist items show a thumbnail, type, and file name instead of a raw path/URL and an ordinal label (`#1 IMAGE`). When adding content to a device I can either upload a new local file or attach something already in my library. New uploads (from either screen) are automatically added to the library. Deleting a device does not delete its content (content is now owned by the user, not the device). Deleting a piece of content removes it from every device's playlist that references it.
+
+### Schema change
+
+`Content` moves from device-owned to user-owned:
+- `Content.deviceId`/`device` relation → `Content.userId`/`user` relation (`onDelete: Cascade` from `User`, not `Device`)
+- `Content.sortOrder` removed — ordering lives on `PlaylistItem.order` (existing column, previously unused for actual queries)
+- `User` gains `contents Content[]`
+- `PlaylistItem` (deviceId, contentId, order) becomes the real device↔content join, used for both listing a device's playlist and reordering it
+
+### Endpoints
+
+- `GET /api/v1/content` — list all library content for the logged-in user (Content Management screen)
+- `POST /api/v1/content` — upload new content directly to the library (no device attach)
+- `DELETE /api/v1/content/:contentId` — delete content entirely; cascades PlaylistItem rows on every device that had it
+- `POST /api/v1/device/:deviceId/content/attach` — attach existing library content to a device (creates a PlaylistItem only)
+- `GET/POST /api/v1/device/:deviceId/content` — unchanged shape, now backed by PlaylistItem join; POST still creates+attaches in one step (local file upload flow)
+- `DELETE /api/v1/device/:deviceId/content/:contentId` — semantics changed: unlinks from this device only (deletes the PlaylistItem row), does not delete the Content record
+- `PUT /api/v1/device/:deviceId/content/playlist/order` — unchanged route, now reorders PlaylistItem rows
+
+### Build order
+
+1. Prisma schema migration (Content → userId, PlaylistItem as source of truth)
+2. Backend: storage/content/device services, controller, routes, validations — TDD (`__test__/content-library.test.ts`, `__test__/device-content-attach.test.ts`)
+3. Frontend: sidebar + dashboard layout, Content Management screen, device-detail playlist UI (thumbnail/type/filename), attach-existing-content picker
+4. `functions.utils.ts` — `getContentDisplayName` pure helper (tested)
+
+### Open questions
+
+None blocking.

@@ -2,7 +2,6 @@ import { DeviceOrientation } from '@prisma/client';
 import { prisma } from '../db';
 import { piAnalyticsPrisma } from '../db-pi-analytics';
 import { socketGateway } from '../socket/socket.gateway';
-import { storageService } from './storage.service';
 
 export const deviceService = {
   getDeviceList: async (userId: string) => {
@@ -21,7 +20,7 @@ export const deviceService = {
         orientation: true,
         _count: {
           select: {
-            contents: true
+            playlists: true
           }
         },
         heartbeats: {
@@ -43,7 +42,7 @@ export const deviceService = {
       status: device.status,
       lastSeen: device.lastSeen,
       orientation: device.orientation,
-      contentCount: device._count.contents,
+      contentCount: device._count.playlists,
       lastHeartbeatAt: device.heartbeats[0]?.seenAt || null,
       appVersion: device.heartbeats[0]?.appVersion || null
     }));
@@ -65,7 +64,7 @@ export const deviceService = {
         orientation: true,
         _count: {
           select: {
-            contents: true
+            playlists: true
           }
         },
         heartbeats: {
@@ -93,7 +92,7 @@ export const deviceService = {
       status: device.status,
       lastSeen: device.lastSeen,
       orientation: device.orientation,
-      contentCount: device._count.contents,
+      contentCount: device._count.playlists,
       lastHeartbeatAt: device.heartbeats[0]?.seenAt || null,
       appVersion: device.heartbeats[0]?.appVersion || null,
       lastHeartbeatIpAddress: device.heartbeats[0]?.ipAddress || null
@@ -165,7 +164,8 @@ export const deviceService = {
       return false;
     }
 
-    await storageService.deleteDeviceAssets(payload.deviceId);
+    // Content is now user-owned; deleting a device only unlinks its playlist (cascades via
+    // PlaylistItem.deviceId), it never deletes the underlying Content rows or their assets.
     await prisma.device.delete({ where: { id: payload.deviceId } });
 
     return true;

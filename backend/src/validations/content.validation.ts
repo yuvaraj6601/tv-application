@@ -26,6 +26,16 @@ export const contentCreateValidation = Joi.object({
   order: Joi.number().integer().min(1).required()
 });
 
+export const contentLibraryCreateValidation = Joi.object({
+  type: Joi.string().valid('IMAGE', 'VIDEO', 'WEBPAGE').required(),
+  url: Joi.when('type', {
+    is: 'WEBPAGE',
+    then: webUrl().required(),
+    otherwise: Joi.string().allow('').optional()
+  }),
+  duration: Joi.number().integer().min(1).optional()
+});
+
 export const contentUpdateValidation = Joi.object({
   type: Joi.string().valid('IMAGE', 'VIDEO', 'WEBPAGE').optional(),
   url: webUrl().optional(),
@@ -33,8 +43,17 @@ export const contentUpdateValidation = Joi.object({
   order: Joi.number().integer().min(1).optional()
 });
 
+export const contentAttachValidation = Joi.object({
+  contentId: Joi.string().required(),
+  order: Joi.number().integer().min(1).required()
+});
+
 export const contentDeleteParamsValidation = Joi.object({
   deviceId: Joi.string().required(),
+  contentId: Joi.string().required()
+});
+
+export const contentLibraryDeleteParamsValidation = Joi.object({
   contentId: Joi.string().required()
 });
 

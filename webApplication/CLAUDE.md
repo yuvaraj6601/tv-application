@@ -7,15 +7,21 @@
 ```
 src/
   app/
-    app.router.tsx          # React Router v7 routes + protected route guard
+    app.router.tsx          # React Router v7 routes + protected route guard; protected routes nest under DashboardLayout
   screens/
     auth/login/             # login.screen.tsx + login.screen.scss
     devices/list/           # devices.screen.tsx + devices.screen.scss
-    devices/detail/         # device-detail.screen.tsx + device-detail.screen.scss
+    devices/detail/         # device-detail.screen.tsx + device-detail.screen.scss — playlist items render via ContentThumbnail; "Add from Existing Content" opens ContentPickerModal
+    content/list/           # content.screen.tsx + content.screen.scss — Content Management: every image/video across all of the user's devices, upload-to-library, delete-everywhere
+  components/common/
+    sidebar/                # sidebar.component.tsx — Device Management / Content Management nav links
+    dashboard-layout/       # dashboard-layout.component.tsx — sidebar + <Outlet/> wrapper for protected routes
+    content-thumbnail/      # content-thumbnail.component.tsx — shared thumbnail+type+filename display (image/video preview, uses getContentDisplayName)
+    content-picker-modal/   # content-picker-modal.component.tsx — modal listing the content library for attaching existing content to a device
   services/                 # API + socket layer (named *.service.ts — maps to models/ in skill)
     auth.service.ts
     device.service.ts
-    content.service.ts
+    content.service.ts      # device-scoped playlist calls (list/upload/attachExisting/remove/reorder) + library calls (listLibrary/uploadToLibrary/deleteFromLibrary)
     socket.service.ts
   store/
     store.ts                # dashboardStore (NOT index.ts)
@@ -24,7 +30,7 @@ src/
       devices.slice.ts      # list of devices
   utils/
     axios.utils.ts          # dashboardAxios instance with request interceptor
-    functions.utils.ts      # pure helpers: isValidMacAddress, isValidPiId (MAC or LOCAL_DEV_PI_ID 'local-dev-test'), formatWatchTime
+    functions.utils.ts      # pure helpers: isValidMacAddress, isValidPiId (MAC or LOCAL_DEV_PI_ID 'local-dev-test'), formatWatchTime, getContentDisplayName (strips upload timestamp prefix / derives a name from the URL or hostname)
   constants/
     strings.constant.ts
   imports/
@@ -84,7 +90,10 @@ React Router v7 with `<BrowserRouter>` in `main.tsx`.
 
 - `/login` → `LoginScreen` (public)
 - `/devices` → `DevicesScreen` (protected)
-- `/devices/:deviceId` → `DeviceDetailScreen` (protected) — now also shows a `pi_id` (Raspberry Pi MAC address) input and a visitor-analytics section (unique visitors, total watch time, per-visitor table), fetched via `deviceService.getAnalytics(deviceId)`; empty-state prompt shown when no `piId` is set yet. Also displays the device's own hardware `macAddress` (read-only, distinct from `piId`) next to the Unique ID.
+- `/devices/:deviceId` → `DeviceDetailScreen` (protected) — now also shows a `pi_id` (Raspberry Pi MAC address) input and a visitor-analytics section (unique visitors, total watch time, per-visitor table), fetched via `deviceService.getAnalytics(deviceId)`; empty-state prompt shown when no `piId` is set yet. Also displays the device's own hardware `macAddress` (read-only, distinct from `piId`) next to the Unique ID. Playlist items render via `ContentThumbnail` (thumbnail/type/filename, not a raw URL or `#N` ordinal); the "Add from Existing Content" button opens `ContentPickerModal` to attach library content without a new upload.
+- `/content` → `ContentScreen` (protected) — Content Management: every image/video uploaded across all of the user's devices, grouped as one library; upload adds to the library only (no device), delete removes the content from every device it's attached to.
+
+Protected routes (`/devices`, `/devices/:deviceId`, `/content`) nest under `DashboardLayout`, which renders the `Sidebar` (Device Management / Content Management links) alongside the routed screen.
 
 Guard: `ProtectedRoutes` reads `state.auth.token`; redirects to `/login` if null.
 

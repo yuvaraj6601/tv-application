@@ -5,7 +5,6 @@ import { RootState } from '../../../store/store';
 import { setDevices } from '../../../store/slices/devices.slice';
 import { deviceService } from '../../../services/device.service';
 import { dashboardSocketService } from '../../../services/socket.service';
-import { clearSession } from '../../../store/slices/auth.slice';
 import './devices.screen.scss';
 
 const formatDateTime = (value: string | null): string => {
@@ -89,12 +88,6 @@ export const DevicesScreen = (): React.JSX.Element => {
     }
   };
 
-  const handleLogout = (): void => {
-    dashboardSocketService.disconnect();
-    dispatch(clearSession());
-    navigate('/login');
-  };
-
   return (
     <section className="devices-screen">
       <header className="devices-screen__header">
@@ -114,9 +107,6 @@ export const DevicesScreen = (): React.JSX.Element => {
           />
           <button type="button" onClick={handlePairDevice}>
             Pair Device
-          </button>
-          <button type="button" onClick={handleLogout} className="pairing-panel__logout-button">
-            Logout
           </button>
         </div>
       </header>

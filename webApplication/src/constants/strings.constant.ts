@@ -32,7 +32,7 @@ export const STRINGS = {
       deviceNameSaveFailed: 'Failed to update device name.',
       deleteDeviceButton: 'Delete Device',
       deleteDeviceModalTitle: 'Delete Device',
-      deleteDeviceModalBody: 'This will permanently delete this device, its playlist, and all uploaded media from the server. This action cannot be undone.',
+      deleteDeviceModalBody: 'This will permanently delete this device and its playlist. Its content stays in your Content Management library and remains available for other devices. This action cannot be undone.',
       deleteDeviceConfirmButton: 'Delete Device',
       deleteDeviceCancelButton: 'Cancel',
       deleteDeviceDeleting: 'Deleting...',
