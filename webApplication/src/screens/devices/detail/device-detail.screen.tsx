@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { DeviceContentItemModel, contentService } from '../../../services/content.service';
+import { ContentLibraryItemModel, DeviceContentItemModel, contentService } from '../../../services/content.service';
 import { DeviceDetailModel, DeviceOrientation, deviceService } from '../../../services/device.service';
 import { DeviceAnalyticsModel } from '../../../interfaces/pi-analytics.interface';
 import { Modal } from '../../../components/common/modal/modal.component';
 import { Toast } from '../../../components/common/toast/toast.component';
+import { ContentThumbnail } from '../../../components/common/content-thumbnail/content-thumbnail.component';
+import { ContentPickerModal } from '../../../components/common/content-picker-modal/content-picker-modal.component';
 import { DonutChart } from '../../../components/common/donut-chart/donut-chart.component';
 import { BarChart } from '../../../components/common/bar-chart/bar-chart.component';
 import { STRINGS } from '../../../constants/strings.constant';
@@ -28,6 +30,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
   const [deleteDeviceState, setDeleteDeviceState] = useState({ isModalOpen: false, isDeleting: false, error: '' });
   const isDeletingDeviceRef = useRef(false);
   const [toastState, setToastState] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isContentPickerOpen, setIsContentPickerOpen] = useState<boolean>(false);
   const [analyticsState, setAnalyticsState] = useState<{
     data: DeviceAnalyticsModel | null;
     isLoading: boolean;
@@ -308,6 +311,22 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
     }
   };
 
+  const handleAttachExisting = async (content: ContentLibraryItemModel): Promise<void> => {
+    if (!deviceId) {
+      return;
+    }
+
+    setIsContentPickerOpen(false);
+    try {
+      await contentService.attachExisting(deviceId, content.id, items.length + 1);
+      await loadItems();
+      setToastState({ message: 'Content added to device.', type: 'success' });
+    } catch (error: unknown) {
+      const message = getRequestErrorMessage(error, 'Failed to add content to device.');
+      setToastState({ message, type: 'error' });
+    }
+  };
+
   const handleOrientationChange = async (event: React.ChangeEvent<HTMLSelectElement>): Promise<void> => {
     if (!deviceId) {
       return;
@@ -542,6 +561,9 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
           ) : null}
           <label>Media File</label>
           <input type="file" accept={uploadType === 'IMAGE' ? 'image/*' : 'video/*'} onChange={handleUploadMedia} />
+          <button type="button" onClick={() => setIsContentPickerOpen(true)}>
+            Add from Existing Content
+          </button>
         </div>
       </section>
 
@@ -551,10 +573,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
         {items.map((item, index) => (
           <article key={item.id} className="content-row">
             <div className="content-row__info">
-              <h4>
-                #{index + 1} {item.type}
-              </h4>
-              <p>{item.url}</p>
+              <ContentThumbnail type={item.type} url={item.url} fileName={item.fileName} />
             </div>
             <div className="content-row__actions">
               <button type="button" onClick={() => moveItem(index, 'UP')}>
@@ -742,6 +761,13 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
           </button>
         </div>
       </Modal>
+
+      <ContentPickerModal
+        isOpen={isContentPickerOpen}
+        onClose={() => setIsContentPickerOpen(false)}
+        onSelect={handleAttachExisting}
+        attachedContentIds={items.map(item => item.id)}
+      />
 
       {toastState ? (
         <Toast message={toastState.message} type={toastState.type} onClose={() => setToastState(null)} />

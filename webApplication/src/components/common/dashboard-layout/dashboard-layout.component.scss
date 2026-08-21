@@ -1,0 +1,11 @@
+$sidebar-width: 220px;
+
+.dashboard-layout {
+  min-height: 100vh;
+
+  &__content {
+    margin-left: $sidebar-width;
+    min-width: 0;
+    min-height: 100vh;
+  }
+}

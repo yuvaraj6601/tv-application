@@ -26,13 +26,14 @@ enum DeviceOrientation {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   passwordHash String
   name         String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   devices      Device[]
+  contents     Content[]
 }
 
 model Device {
@@ -51,7 +52,6 @@ model Device {
   piId           String?           @unique
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-  contents       Content[]
   playlists      PlaylistItem[]
   heartbeats     DeviceHeartbeat[]
 
@@ -60,21 +60,20 @@ model Device {
 }
 
 model Content {
-  id          String         @id @default(cuid())
-  deviceId    String
-  device      Device         @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  type        ContentType
-  url         String
-  localPath   String?
-  fileName    String?
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         ContentType
+  url          String
+  localPath    String?
+  fileName     String?
   fileMimeType String?
-  duration    Int?
-  sortOrder   Int
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  playlistRef PlaylistItem[]
+  duration     Int?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  playlistRef  PlaylistItem[]
 
-  @@index([deviceId, sortOrder])
+  @@index([userId])
 }
 
 model PlaylistItem {
@@ -88,6 +87,7 @@ model PlaylistItem {
   content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   @@unique([deviceId, order])
+  @@unique([deviceId, contentId])
 }
 
 model DeviceHeartbeat {

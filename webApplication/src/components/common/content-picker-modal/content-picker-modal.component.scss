@@ -1,0 +1,38 @@
+.content-picker-modal {
+  min-width: 320px;
+  max-width: 480px;
+
+  &__status {
+    color: #64748b;
+    font-size: 14px;
+
+    &--error {
+      color: #b42318;
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  &__item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+
+    &:hover {
+      border-color: #0284c7;
+      background: #f0f9ff;
+    }
+  }
+}

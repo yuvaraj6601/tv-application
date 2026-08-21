@@ -18,6 +18,39 @@ const DEVICE_NAME_MAX_LENGTH = 120;
 export const isValidDeviceName = (value: string): boolean =>
   value.trim().length >= DEVICE_NAME_MIN_LENGTH && value.trim().length <= DEVICE_NAME_MAX_LENGTH;
 
+const TIMESTAMP_PREFIX_PATTERN = /^\d+-/;
+
+const stripTimestampPrefix = (value: string): string => value.replace(TIMESTAMP_PREFIX_PATTERN, '');
+
+const getUrlBaseName = (url: string): string | null => {
+  const [pathOnly] = url.split(/[?#]/);
+  const segments = pathOnly.split('/').filter(Boolean);
+  const lastSegment = segments[segments.length - 1];
+  return lastSegment ? stripTimestampPrefix(lastSegment) : null;
+};
+
+const getUrlHostname = (url: string): string | null => {
+  try {
+    const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    return new URL(normalizedUrl).hostname || null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+export const getContentDisplayName = (fileName: string | null, url: string, type: 'IMAGE' | 'VIDEO' | 'WEBPAGE'): string => {
+  const trimmedFileName = fileName?.trim();
+  if (trimmedFileName) {
+    return stripTimestampPrefix(trimmedFileName);
+  }
+
+  if (type === 'WEBPAGE') {
+    return getUrlHostname(url) || `Untitled ${type}`;
+  }
+
+  return getUrlBaseName(url) || `Untitled ${type}`;
+};
+
 export const formatWatchTime = (totalSeconds: number): string => {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

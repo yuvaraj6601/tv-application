@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatWatchTime, isValidMacAddress, isValidPiId } from '../utils/functions.utils';
+import { formatWatchTime, getContentDisplayName, isValidMacAddress, isValidPiId } from '../utils/functions.utils';
 
 describe('isValidMacAddress', () => {
   it('happy path — accepts a well-formed MAC address', () => {
@@ -84,5 +84,33 @@ describe('formatWatchTime', () => {
 
   it('boundary — exactly one hour has no leftover minutes shown', () => {
     expect(formatWatchTime(3600)).toBe('1h 0m');
+  });
+});
+
+describe('getContentDisplayName', () => {
+  it('happy path — returns the fileName as-is when present', () => {
+    expect(getContentDisplayName('sunset.jpg', 'https://cdn.example.com/uploads/device-1/1699999999-sunset.jpg', 'IMAGE')).toBe('sunset.jpg');
+  });
+
+  it('happy path — strips a timestamp prefix from the fileName', () => {
+    expect(getContentDisplayName('1699999999-sunset.jpg', 'https://cdn.example.com/uploads/device-1/1699999999-sunset.jpg', 'IMAGE')).toBe(
+      'sunset.jpg'
+    );
+  });
+
+  it('fallback — derives a name from the URL when fileName is null', () => {
+    expect(getContentDisplayName(null, 'https://cdn.example.com/uploads/device-1/1699999999-poster.png', 'IMAGE')).toBe('poster.png');
+  });
+
+  it('fallback — uses the hostname for a WEBPAGE type with no fileName', () => {
+    expect(getContentDisplayName(null, 'https://example.com/landing-page', 'WEBPAGE')).toBe('example.com');
+  });
+
+  it('boundary — returns a generic label when neither fileName nor a usable URL segment exists', () => {
+    expect(getContentDisplayName(null, '', 'IMAGE')).toBe('Untitled IMAGE');
+  });
+
+  it('boundary — empty-string fileName is treated as missing, falls back to the URL', () => {
+    expect(getContentDisplayName('', 'https://cdn.example.com/uploads/device-1/clip.mp4', 'VIDEO')).toBe('clip.mp4');
   });
 });
