@@ -3,7 +3,7 @@ package com.digitalsignagetv.boot
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.digitalsignagetv.MainActivity
+import androidx.core.content.ContextCompat
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -14,10 +14,7 @@ class BootReceiver : BroadcastReceiver() {
             return
         }
 
-        val launchIntent = Intent(context, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        context.startActivity(launchIntent)
+        val serviceIntent = Intent(context, BootLaunchService::class.java)
+        ContextCompat.startForegroundService(context, serviceIntent)
     }
 }

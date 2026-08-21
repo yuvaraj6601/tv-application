@@ -282,3 +282,52 @@ Ran the real pipeline against the developer's local webcam (`uv run python -m sr
 ### Emotion/expression detection
 
 Explicitly out of scope — `buffalo_s` has no expression model; would require a separate dedicated model (e.g. FER+, mini-Xception) added as its own pipeline step, not covered here.
+
+## Feature: Auto-launch app on TV startup — 2026-08-21
+
+### Description
+
+The Android TV client (`mobileApplication/`, package `com.digitalsignagetv`) should open automatically whenever the physical TV/Android box is powered on or rebooted — no manual tap needed. This is a code-level piece (already largely present) plus a device-level setup checklist, since "launches on boot" on Android also depends on OEM/box behavior that code alone can't guarantee.
+
+### Current state (already in the repo — verified, not new work)
+
+- [`AndroidManifest.xml`](mobileApplication/android/app/src/main/AndroidManifest.xml) already declares:
+  - `RECEIVE_BOOT_COMPLETED` permission
+  - `.boot.BootReceiver` registered for `BOOT_COMPLETED` and `LOCKED_BOOT_COMPLETED`, `android:exported="true"` (required, targetSdk 36)
+  - `MainActivity` has `LAUNCHER` and `LEANBACK_LAUNCHER` categories, `launchMode="singleTask"`, `screenOrientation="fullSensor"`
+- [`BootReceiver.kt`](mobileApplication/android/app/src/main/java/com/digitalsignagetv/boot/BootReceiver.kt) starts `MainActivity` with `FLAG_ACTIVITY_NEW_TASK` on either boot action.
+
+So the "launch on boot" code path already exists. What's missing is hardening it and doing the device-side setup — see below.
+
+### Gaps to close (code)
+
+1. **No `FLAG_ACTIVITY_CLEAR_TOP` / single-instance guard** — if the app process is already alive when `BOOT_COMPLETED` fires (rare but possible on some boxes that warm-start apps), `startActivity` could create a duplicate task. Add `Intent.FLAG_ACTIVITY_CLEAR_TOP` alongside `FLAG_ACTIVITY_NEW_TASK` in `BootReceiver.kt`.
+2. **No retry/error handling** — `context.startActivity(launchIntent)` can throw (e.g. `ActivityNotFoundException` on a malformed OEM ROM) and would crash the receiver silently. Wrap in try/catch and log via existing logging pattern (no bare `catch {}`).
+3. **No boot-delay tolerance** — some Android TV boxes fire `BOOT_COMPLETED` before network/display is fully ready. The app's existing `boot.screen.tsx` → offline/pairing flow already handles "no network yet," so no change needed here beyond confirming that screen is the first thing rendered after a cold boot (should already be true via `app.navigator.tsx`'s initial route).
+4. **`RECEIVER_EXPORTED` reminder** — already correct (`android:exported="true"`), but double check no `BootReceiver` registration was duplicated dynamically in `MainApplication.kt` (checked — it isn't; only `DeviceIdentifierPackage` is registered there).
+
+### Device-side setup checklist (not code — must be done per physical TV/box, documented here so it isn't lost)
+
+1. **Set as default/home launcher** — since the manifest declares both `LAUNCHER` and `LEANBACK_LAUNCHER`, on first boot Android will prompt "select launcher." Choose "DigitalSignageTV" and set as default (or use `adb shell cmd package set-home-activity com.digitalsignagetv/.MainActivity` for unattended provisioning).
+2. **Disable battery optimization / background restriction for the app** — many Android TV boxes (Amlogic/Rockchip-based ones especially) kill or delay `BOOT_COMPLETED` receivers for apps under battery/app-standby restrictions. Whitelist `com.digitalsignagetv` in Settings → Apps → Battery, or via `adb shell dumpsys deviceidle whitelist +com.digitalsignagetv`.
+3. **Disable any OEM "auto-start manager"** — many cheap Android TV boxes ship a vendor auto-start manager (separate from stock Android) that blocks `BOOT_COMPLETED` receivers by default per-app. Must be explicitly allowed per box; no universal ADB command, varies by OEM.
+4. **Disable screensaver / sleep / screen timeout** — Settings → Device Preferences → Screensaver → Never, and Display → Sleep → Never, so the launched app doesn't get obscured or the display doesn't blank.
+5. **Turn off "Send usage & diagnostics" boot dialogs / OTA update prompts** where present, since a modal on top can block the app from receiving focus/input.
+6. **Confirm HDMI-CEC "power on TV with source device" is enabled** on the actual television if the box is a separate HDMI dongle, so the TV wakes and switches input automatically when the box boots — this is a TV setting, not an Android setting.
+7. **Physical power cycle test** — after all of the above, pull power (not just reboot via ADB) and confirm the app appears within a reasonable time (~30–60s) with no launcher chooser or blank screen.
+
+### Build order
+
+1. Harden `BootReceiver.kt` (gap #1, #2 above) — small, isolated change, no test-writing overhead (native Android receiver, outside the RN/TS TDD flow already used in `mobileApplication/`)
+2. Rebuild and side-load the APK on one physical test box
+3. Walk the device-side checklist on that box, physically power-cycle to verify
+4. Repeat checklist per additional box during rollout (this is a per-device provisioning step going forward, not one-time)
+
+### Open questions
+
+- Is unattended provisioning (ADB script across many boxes) needed, or is this a one-off manual setup on a handful of devices? Determines whether the device-side checklist should become a shell/ADB provisioning script.
+
+### Confirmed target device (2026-08-21): Xiaomi Mi TV Box / Mi Box S — stock Android TV
+
+Device is a Mi Box, which runs stock Google Android TV (not a custom Chinese-OEM skin), so there is no vendor "auto-start manager" step to fight — that gap only applied to Amlogic/Rockchip white-label boxes and does not apply here. Mi Box-specific device setup steps below replace the generic OEM checklist above.
+
