@@ -1,3 +1,43 @@
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 30;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #f8fafc;
+  cursor: pointer;
+
+  &__icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-toggle {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 15;
+  }
+}
+
 .sidebar {
   width: 220px;
   position: fixed;
@@ -9,6 +49,16 @@
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
+  z-index: 20;
+  transition: transform 0.2s ease;
+
+  @media (max-width: 768px) {
+    transform: translateX(-100%);
+
+    &--open {
+      transform: translateX(0);
+    }
+  }
 
   &__brand {
     color: #f8fafc;

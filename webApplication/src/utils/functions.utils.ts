@@ -51,6 +51,10 @@ export const getContentDisplayName = (fileName: string | null, url: string, type
   return getUrlBaseName(url) || `Untitled ${type}`;
 };
 
+export const truncateFileName = (fileName: string, maxLength = 12): string => {
+  return fileName.length > maxLength ? `${fileName.slice(0, maxLength)}...` : fileName;
+};
+
 export const formatWatchTime = (totalSeconds: number): string => {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

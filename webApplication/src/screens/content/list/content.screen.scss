@@ -2,6 +2,8 @@
   min-height: 100vh;
   background: #f8fafc;
   padding: 24px;
+  overflow-x: hidden;
+  box-sizing: border-box;
 
   &__header {
     display: flex;
@@ -49,6 +51,8 @@
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     padding: 10px 14px;
+    max-width: 100%;
+    box-sizing: border-box;
 
     select,
     input {
@@ -56,6 +60,18 @@
       border-radius: 8px;
       padding: 6px 10px;
       font-size: 13px;
+      min-width: 0;
+    }
+
+    input[type='file'] {
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 640px) {
+    &__upload {
+      flex-wrap: wrap;
+      width: 100%;
     }
   }
 
@@ -152,6 +168,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     vertical-align: middle;
+
+    &--short {
+      display: none;
+    }
   }
 
   &__delete {
@@ -166,6 +186,27 @@
 
     &:hover {
       background: #fee2e2;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .content-table {
+    th,
+    td {
+      padding: 8px 8px;
+    }
+
+    &__name {
+      max-width: none;
+
+      &--full {
+        display: none;
+      }
+
+      &--short {
+        display: inline-block;
+      }
     }
   }
 }
