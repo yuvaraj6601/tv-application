@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ContentLibraryItemModel, DashboardContentType, contentService } from '../../../services/content.service';
 import { ContentThumbnail } from '../../../components/common/content-thumbnail/content-thumbnail.component';
 import { Toast } from '../../../components/common/toast/toast.component';
-import { getContentDisplayName } from '../../../utils/functions.utils';
+import { getContentDisplayName, truncateFileName } from '../../../utils/functions.utils';
 import './content.screen.scss';
 
 type ContentTypeFilter = 'ALL' | DashboardContentType;
@@ -131,8 +131,17 @@ export const ContentScreen = (): React.JSX.Element => {
                     <span className="content-table__type">{item.type}</span>
                   </td>
                   <td>
-                    <span className="content-table__name" title={getContentDisplayName(item.fileName, item.url, item.type)}>
+                    <span
+                      className="content-table__name content-table__name--full"
+                      title={getContentDisplayName(item.fileName, item.url, item.type)}
+                    >
                       {getContentDisplayName(item.fileName, item.url, item.type)}
+                    </span>
+                    <span
+                      className="content-table__name content-table__name--short"
+                      title={getContentDisplayName(item.fileName, item.url, item.type)}
+                    >
+                      {truncateFileName(getContentDisplayName(item.fileName, item.url, item.type))}
                     </span>
                   </td>
                   <td>
