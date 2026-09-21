@@ -51,8 +51,111 @@ export const getContentDisplayName = (fileName: string | null, url: string, type
   return getUrlBaseName(url) || `Untitled ${type}`;
 };
 
+export interface FilterableContentItem {
+  id: string;
+  type: 'IMAGE' | 'VIDEO' | 'WEBPAGE';
+  url: string;
+  fileName: string | null;
+  createdAt: string;
+}
+
+export type ContentTypeFilterValue = 'ALL' | 'IMAGE' | 'VIDEO' | 'WEBPAGE';
+export type ContentSortBy = 'NEWEST' | 'OLDEST' | 'NAME';
+
+export interface ContentFilterOptions {
+  typeFilter: ContentTypeFilterValue;
+  searchTerm: string;
+  sortBy: ContentSortBy;
+  page: number;
+  pageSize: number;
+}
+
+export interface PaginatedContentResult<ContentItemType> {
+  items: ContentItemType[];
+  totalItems: number;
+  totalPages: number;
+  page: number;
+}
+
+export const filterSortAndPaginateContent = <ContentItemType extends FilterableContentItem>(
+  items: ContentItemType[],
+  { typeFilter, searchTerm, sortBy, page, pageSize }: ContentFilterOptions
+): PaginatedContentResult<ContentItemType> => {
+  const trimmedSearch = searchTerm.trim().toLowerCase();
+
+  const filtered = items.filter(item => {
+    const matchesType = typeFilter === 'ALL' || item.type === typeFilter;
+    const matchesSearch = !trimmedSearch || getContentDisplayName(item.fileName, item.url, item.type).toLowerCase().includes(trimmedSearch);
+
+    return matchesType && matchesSearch;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'NAME') {
+      return getContentDisplayName(a.fileName, a.url, a.type).localeCompare(getContentDisplayName(b.fileName, b.url, b.type));
+    }
+
+    const aCreatedTime = new Date(a.createdAt).getTime();
+    const bCreatedTime = new Date(b.createdAt).getTime();
+    return sortBy === 'OLDEST' ? aCreatedTime - bCreatedTime : bCreatedTime - aCreatedTime;
+  });
+
+  const totalItems = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+
+  return {
+    items: sorted.slice(startIndex, startIndex + pageSize),
+    totalItems,
+    totalPages,
+    page: safePage
+  };
+};
+
 export const truncateFileName = (fileName: string, maxLength = 12): string => {
   return fileName.length > maxLength ? `${fileName.slice(0, maxLength)}...` : fileName;
+};
+
+export interface FilterableDevice {
+  id: string;
+  deviceName: string;
+  status: 'ONLINE' | 'OFFLINE';
+  lastSeen: string | null;
+}
+
+export type DeviceStatusFilter = 'ALL' | 'ONLINE' | 'OFFLINE';
+export type DeviceSortBy = 'LAST_SEEN' | 'NAME';
+
+export interface DeviceFilterOptions {
+  statusFilter: DeviceStatusFilter;
+  searchTerm: string;
+  sortBy: DeviceSortBy;
+}
+
+export const filterAndSortDevices = <DeviceType extends FilterableDevice>(
+  devices: DeviceType[],
+  { statusFilter, searchTerm, sortBy }: DeviceFilterOptions
+): DeviceType[] => {
+  const trimmedSearch = searchTerm.trim().toLowerCase();
+
+  const filtered = devices.filter(device => {
+    const matchesStatus = statusFilter === 'ALL' || device.status === statusFilter;
+    const matchesSearch =
+      !trimmedSearch || device.deviceName.toLowerCase().includes(trimmedSearch) || device.id.toLowerCase().includes(trimmedSearch);
+
+    return matchesStatus && matchesSearch;
+  });
+
+  return [...filtered].sort((a, b) => {
+    if (sortBy === 'NAME') {
+      return a.deviceName.localeCompare(b.deviceName);
+    }
+
+    const aLastSeenTime = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
+    const bLastSeenTime = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
+    return bLastSeenTime - aLastSeenTime;
+  });
 };
 
 export const formatWatchTime = (totalSeconds: number): string => {
