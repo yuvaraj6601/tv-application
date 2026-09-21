@@ -6,6 +6,7 @@ import {
   filterSortAndPaginateContent,
   formatWatchTime,
   getContentDisplayName,
+  isPreviewableContent,
   isValidMacAddress,
   isValidPiId
 } from '../utils/functions.utils';
@@ -229,5 +230,19 @@ describe('filterSortAndPaginateContent', () => {
     const result = filterSortAndPaginateContent(items, { typeFilter: 'ALL', searchTerm: '', sortBy: 'NEWEST', page: 99, pageSize: 2 });
     expect(result.page).toBe(2);
     expect(result.items.map(item => item.id)).toEqual(['content-1']);
+  });
+});
+
+describe('isPreviewableContent', () => {
+  it('happy path — IMAGE can be previewed', () => {
+    expect(isPreviewableContent('IMAGE')).toBe(true);
+  });
+
+  it('happy path — VIDEO can be previewed', () => {
+    expect(isPreviewableContent('VIDEO')).toBe(true);
+  });
+
+  it('boundary — WEBPAGE cannot be previewed (opened externally instead)', () => {
+    expect(isPreviewableContent('WEBPAGE')).toBe(false);
   });
 });

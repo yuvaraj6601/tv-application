@@ -26,6 +26,15 @@
     &-icon {
       font-size: 22px;
     }
+
+    &--clickable {
+      cursor: pointer;
+
+      &:hover {
+        outline: 2px solid #0284c7;
+        outline-offset: 1px;
+      }
+    }
   }
 
   &__webpage-icon {
