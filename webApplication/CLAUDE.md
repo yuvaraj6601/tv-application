@@ -11,7 +11,7 @@ src/
   screens/
     auth/login/             # login.screen.tsx + login.screen.scss
     devices/list/           # devices.screen.tsx + devices.screen.scss — Device Fleet: icon-badge summary cards, status/search/sort toolbar (filterAndSortDevices), device rows with thumbnail + View Details button, "Pair a New Device" card opens a pairing-code Modal
-    devices/detail/         # device-detail.screen.tsx + device-detail.screen.scss — playlist items render via ContentThumbnail; "Add from Existing Content" opens ContentPickerModal
+    devices/detail/         # device-detail.screen.tsx + device-detail.screen.scss — tabbed layout (Content & Settings, Playlist, Analytics, Device Info) via local activeTab state; playlist items render via ContentThumbnail; "Add from Existing Content" opens ContentPickerModal; Device Info tab holds identity/activity/actions cards (copy-to-clipboard for Device ID/Unique ID, Edit Device Name, Delete Device)
     content/list/           # content.screen.tsx + content.screen.scss — Content Management: every image/video across all of the user's devices, upload-to-library, delete-everywhere; pill filter tabs (All/Images/Videos), search, sort (Newest/Oldest/Name), paginated table with an Uploaded column via filterSortAndPaginateContent
   components/common/
     sidebar/                # sidebar.component.tsx — Device Management / Content Management nav links
@@ -30,7 +30,7 @@ src/
       devices.slice.ts      # list of devices
   utils/
     axios.utils.ts          # dashboardAxios instance with request interceptor
-    functions.utils.ts      # pure helpers: isValidMacAddress, isValidPiId (MAC or LOCAL_DEV_PI_ID 'local-dev-test'), formatWatchTime, getContentDisplayName (strips upload timestamp prefix / derives a name from the URL or hostname), filterAndSortDevices (status/search/sort for the device fleet list), filterSortAndPaginateContent (type/search/sort/pagination for the content library table)
+    functions.utils.ts      # pure helpers: isValidMacAddress, isValidPiId (MAC or LOCAL_DEV_PI_ID 'local-dev-test'), formatWatchTime, getContentDisplayName (strips upload timestamp prefix / derives a name from the URL or hostname), filterAndSortDevices (status/search/sort for the device fleet list), filterSortAndPaginateContent (type/search/sort/pagination for the content library table), getOrientationLabel (display label for a DeviceOrientation value)
   constants/
     strings.constant.ts
   imports/
