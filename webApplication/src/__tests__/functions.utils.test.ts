@@ -6,6 +6,7 @@ import {
   filterSortAndPaginateContent,
   formatWatchTime,
   getContentDisplayName,
+  getOrientationLabel,
   isValidMacAddress,
   isValidPiId
 } from '../utils/functions.utils';
@@ -229,5 +230,23 @@ describe('filterSortAndPaginateContent', () => {
     const result = filterSortAndPaginateContent(items, { typeFilter: 'ALL', searchTerm: '', sortBy: 'NEWEST', page: 99, pageSize: 2 });
     expect(result.page).toBe(2);
     expect(result.items.map(item => item.id)).toEqual(['content-1']);
+  });
+});
+
+describe('getOrientationLabel', () => {
+  it('happy path — PORTRAIT', () => {
+    expect(getOrientationLabel('PORTRAIT')).toBe('Portrait');
+  });
+
+  it('happy path — LANDSCAPE', () => {
+    expect(getOrientationLabel('LANDSCAPE')).toBe('Landscape');
+  });
+
+  it('happy path — PORTRAIT_FLIP', () => {
+    expect(getOrientationLabel('PORTRAIT_FLIP')).toBe('Portrait Flip');
+  });
+
+  it('happy path — LANDSCAPE_FLIP', () => {
+    expect(getOrientationLabel('LANDSCAPE_FLIP')).toBe('Landscape Flip');
   });
 });

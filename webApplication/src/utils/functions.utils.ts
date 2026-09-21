@@ -113,6 +113,21 @@ export const filterSortAndPaginateContent = <ContentItemType extends FilterableC
   };
 };
 
+export const getOrientationLabel = (orientation: 'PORTRAIT' | 'LANDSCAPE' | 'PORTRAIT_FLIP' | 'LANDSCAPE_FLIP'): string => {
+  switch (orientation) {
+    case 'PORTRAIT':
+      return 'Portrait';
+    case 'LANDSCAPE':
+      return 'Landscape';
+    case 'PORTRAIT_FLIP':
+      return 'Portrait Flip';
+    case 'LANDSCAPE_FLIP':
+      return 'Landscape Flip';
+    default:
+      return orientation;
+  }
+};
+
 export const truncateFileName = (fileName: string, maxLength = 12): string => {
   return fileName.length > maxLength ? `${fileName.slice(0, maxLength)}...` : fileName;
 };
