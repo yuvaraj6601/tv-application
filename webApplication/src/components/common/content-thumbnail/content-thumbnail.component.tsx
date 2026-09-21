@@ -1,6 +1,6 @@
 import React from 'react';
 import { DashboardContentType } from '../../../services/content.service';
-import { getContentDisplayName } from '../../../utils/functions.utils';
+import { getContentDisplayName, isPreviewableContent } from '../../../utils/functions.utils';
 import { apiBaseUrl } from '../../../utils/axios.utils';
 import './content-thumbnail.component.scss';
 
@@ -9,6 +9,7 @@ interface ContentThumbnailProps {
   url: string;
   fileName: string | null;
   hideInfo?: boolean;
+  onPreview?: () => void;
 }
 
 // Uploaded asset URLs are stored server-relative (e.g. "/uploads/..."); resolve them against the
@@ -23,13 +24,30 @@ const handleVideoLoadedMetadata = (event: React.SyntheticEvent<HTMLVideoElement>
   }
 };
 
-export const ContentThumbnail = ({ type, url, fileName, hideInfo = false }: ContentThumbnailProps): React.JSX.Element => {
+export const ContentThumbnail = ({ type, url, fileName, hideInfo = false, onPreview }: ContentThumbnailProps): React.JSX.Element => {
   const displayName = getContentDisplayName(fileName, url, type);
   const resolvedUrl = resolveAssetUrl(url);
+  const isClickable = Boolean(onPreview) && isPreviewableContent(type);
 
   return (
     <div className="content-thumbnail">
-      <div className="content-thumbnail__preview">
+      <div
+        className={`content-thumbnail__preview${isClickable ? ' content-thumbnail__preview--clickable' : ''}`}
+        onClick={isClickable ? onPreview : undefined}
+        onKeyDown={
+          isClickable
+            ? event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onPreview?.();
+                }
+              }
+            : undefined
+        }
+        role={isClickable ? 'button' : undefined}
+        tabIndex={isClickable ? 0 : undefined}
+        title={isClickable ? `Preview ${displayName}` : undefined}
+      >
         {type === 'IMAGE' ? <img src={resolvedUrl} alt={displayName} loading="lazy" /> : null}
         {type === 'VIDEO' ? (
           <video src={`${resolvedUrl}#t=0.1`} muted playsInline preload="metadata" onLoadedMetadata={handleVideoLoadedMetadata} />

@@ -1,8 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ContentLibraryItemModel, DashboardContentType, contentService } from '../../../services/content.service';
 import { ContentThumbnail } from '../../../components/common/content-thumbnail/content-thumbnail.component';
+import { ContentViewerModal } from '../../../components/common/content-viewer-modal/content-viewer-modal.component';
 import { Toast } from '../../../components/common/toast/toast.component';
-import { ContentSortBy, ContentTypeFilterValue, filterSortAndPaginateContent, getContentDisplayName } from '../../../utils/functions.utils';
+import {
+  ContentSortBy,
+  ContentTypeFilterValue,
+  filterSortAndPaginateContent,
+  getContentDisplayName,
+  isPreviewableContent
+} from '../../../utils/functions.utils';
 import './content.screen.scss';
 
 const PAGE_SIZE = 10;
@@ -27,6 +34,7 @@ export const ContentScreen = (): React.JSX.Element => {
   const [page, setPage] = useState<number>(1);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [toastState, setToastState] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [previewItem, setPreviewItem] = useState<ContentLibraryItemModel | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadLibrary = async (): Promise<void> => {
@@ -189,7 +197,13 @@ export const ContentScreen = (): React.JSX.Element => {
                 {paginatedResult.items.map(item => (
                   <tr key={item.id}>
                     <td>
-                      <ContentThumbnail type={item.type} url={item.url} fileName={item.fileName} hideInfo />
+                      <ContentThumbnail
+                        type={item.type}
+                        url={item.url}
+                        fileName={item.fileName}
+                        hideInfo
+                        onPreview={isPreviewableContent(item.type) ? () => setPreviewItem(item) : undefined}
+                      />
                     </td>
                     <td>
                       <span className="content-table__type">{item.type}</span>
@@ -252,6 +266,16 @@ export const ContentScreen = (): React.JSX.Element => {
       ) : null}
 
       {toastState ? <Toast message={toastState.message} type={toastState.type} onClose={() => setToastState(null)} /> : null}
+
+      {previewItem ? (
+        <ContentViewerModal
+          isOpen
+          type={previewItem.type}
+          url={previewItem.url}
+          title={getContentDisplayName(previewItem.fileName, previewItem.url, previewItem.type)}
+          onClose={() => setPreviewItem(null)}
+        />
+      ) : null}
     </section>
   );
 };

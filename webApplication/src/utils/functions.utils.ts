@@ -51,6 +51,8 @@ export const getContentDisplayName = (fileName: string | null, url: string, type
   return getUrlBaseName(url) || `Untitled ${type}`;
 };
 
+export const isPreviewableContent = (type: 'IMAGE' | 'VIDEO' | 'WEBPAGE'): boolean => type === 'IMAGE' || type === 'VIDEO';
+
 export interface FilterableContentItem {
   id: string;
   type: 'IMAGE' | 'VIDEO' | 'WEBPAGE';

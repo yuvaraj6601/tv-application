@@ -6,11 +6,12 @@ import { DeviceAnalyticsModel } from '../../../interfaces/pi-analytics.interface
 import { Modal } from '../../../components/common/modal/modal.component';
 import { Toast } from '../../../components/common/toast/toast.component';
 import { ContentThumbnail } from '../../../components/common/content-thumbnail/content-thumbnail.component';
+import { ContentViewerModal } from '../../../components/common/content-viewer-modal/content-viewer-modal.component';
 import { ContentPickerModal } from '../../../components/common/content-picker-modal/content-picker-modal.component';
 import { DonutChart } from '../../../components/common/donut-chart/donut-chart.component';
 import { BarChart } from '../../../components/common/bar-chart/bar-chart.component';
 import { STRINGS } from '../../../constants/strings.constant';
-import { formatWatchTime, isValidDeviceName, isValidPiId } from '../../../utils/functions.utils';
+import { formatWatchTime, getContentDisplayName, isPreviewableContent, isValidDeviceName, isValidPiId } from '../../../utils/functions.utils';
 import './device-detail.screen.scss';
 
 export const DeviceDetailScreen = (): React.JSX.Element => {
@@ -31,6 +32,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
   const isDeletingDeviceRef = useRef(false);
   const [toastState, setToastState] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isContentPickerOpen, setIsContentPickerOpen] = useState<boolean>(false);
+  const [previewItem, setPreviewItem] = useState<DeviceContentItemModel | null>(null);
   const [analyticsState, setAnalyticsState] = useState<{
     data: DeviceAnalyticsModel | null;
     isLoading: boolean;
@@ -573,7 +575,12 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
         {items.map((item, index) => (
           <article key={item.id} className="content-row">
             <div className="content-row__info">
-              <ContentThumbnail type={item.type} url={item.url} fileName={item.fileName} />
+              <ContentThumbnail
+                type={item.type}
+                url={item.url}
+                fileName={item.fileName}
+                onPreview={isPreviewableContent(item.type) ? () => setPreviewItem(item) : undefined}
+              />
             </div>
             <div className="content-row__actions">
               <button type="button" onClick={() => moveItem(index, 'UP')}>
@@ -771,6 +778,16 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
 
       {toastState ? (
         <Toast message={toastState.message} type={toastState.type} onClose={() => setToastState(null)} />
+      ) : null}
+
+      {previewItem ? (
+        <ContentViewerModal
+          isOpen
+          type={previewItem.type}
+          url={previewItem.url}
+          title={getContentDisplayName(previewItem.fileName, previewItem.url, previewItem.type)}
+          onClose={() => setPreviewItem(null)}
+        />
       ) : null}
     </section>
   );

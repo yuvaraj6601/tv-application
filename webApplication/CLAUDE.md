@@ -16,7 +16,8 @@ src/
   components/common/
     sidebar/                # sidebar.component.tsx — Device Management / Content Management nav links
     dashboard-layout/       # dashboard-layout.component.tsx — sidebar + <Outlet/> wrapper for protected routes
-    content-thumbnail/      # content-thumbnail.component.tsx — shared thumbnail+type+filename display (image/video preview, uses getContentDisplayName)
+    content-thumbnail/      # content-thumbnail.component.tsx — shared thumbnail+type+filename display (image/video preview, uses getContentDisplayName); clickable (onPreview) for IMAGE/VIDEO to open ContentViewerModal
+    content-viewer-modal/   # content-viewer-modal.component.tsx — full-size image viewer / video player modal, opened from ContentThumbnail's onPreview
     content-picker-modal/   # content-picker-modal.component.tsx — modal listing the content library for attaching existing content to a device
   services/                 # API + socket layer (named *.service.ts — maps to models/ in skill)
     auth.service.ts
@@ -30,7 +31,7 @@ src/
       devices.slice.ts      # list of devices
   utils/
     axios.utils.ts          # dashboardAxios instance with request interceptor
-    functions.utils.ts      # pure helpers: isValidMacAddress, isValidPiId (MAC or LOCAL_DEV_PI_ID 'local-dev-test'), formatWatchTime, getContentDisplayName (strips upload timestamp prefix / derives a name from the URL or hostname), filterAndSortDevices (status/search/sort for the device fleet list), filterSortAndPaginateContent (type/search/sort/pagination for the content library table)
+    functions.utils.ts      # pure helpers: isValidMacAddress, isValidPiId (MAC or LOCAL_DEV_PI_ID 'local-dev-test'), formatWatchTime, getContentDisplayName (strips upload timestamp prefix / derives a name from the URL or hostname), filterAndSortDevices (status/search/sort for the device fleet list), filterSortAndPaginateContent (type/search/sort/pagination for the content library table), isPreviewableContent (true for IMAGE/VIDEO, false for WEBPAGE)
   constants/
     strings.constant.ts
   imports/
