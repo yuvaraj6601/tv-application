@@ -17,6 +17,7 @@ export interface ContentLibraryItemModel {
   url: string;
   fileName: string | null;
   duration: number | null;
+  createdAt: string;
 }
 
 interface ApiResponseModel<T> {
