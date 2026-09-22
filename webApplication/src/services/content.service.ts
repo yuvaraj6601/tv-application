@@ -30,26 +30,24 @@ export const contentService = {
     const response = await dashboardAxios.get<ApiResponseModel<DeviceContentItemModel[]>>(`/api/v1/device/${deviceId}/content`);
     return response.data.data;
   },
-  createWebpage: async (deviceId: string, payload: { url: string; order: number; duration: number }): Promise<void> => {
+  createWebpage: async (deviceId: string, payload: { url: string; duration: number }): Promise<void> => {
     const body = new FormData();
     body.append('type', 'WEBPAGE');
     body.append('url', payload.url);
-    body.append('order', String(payload.order));
     body.append('duration', String(payload.duration));
     await dashboardAxios.post(`/api/v1/device/${deviceId}/content`, body);
   },
-  uploadMedia: async (deviceId: string, payload: { type: 'IMAGE' | 'VIDEO'; file: File; order: number; duration?: number }): Promise<void> => {
+  uploadMedia: async (deviceId: string, payload: { type: 'IMAGE' | 'VIDEO'; file: File; duration?: number }): Promise<void> => {
     const body = new FormData();
     body.append('type', payload.type);
-    body.append('order', String(payload.order));
     if (payload.duration) {
       body.append('duration', String(payload.duration));
     }
     body.append('file', payload.file);
     await dashboardAxios.post(`/api/v1/device/${deviceId}/content`, body);
   },
-  attachExisting: async (deviceId: string, contentId: string, order: number): Promise<void> => {
-    await dashboardAxios.post(`/api/v1/device/${deviceId}/content/attach`, { contentId, order });
+  attachExisting: async (deviceId: string, contentId: string): Promise<void> => {
+    await dashboardAxios.post(`/api/v1/device/${deviceId}/content/attach`, { contentId });
   },
   updateDuration: async (deviceId: string, contentId: string, duration: number): Promise<void> => {
     const body = new FormData();

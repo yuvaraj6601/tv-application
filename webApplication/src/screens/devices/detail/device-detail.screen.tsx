@@ -289,7 +289,6 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
       await contentService.uploadMedia(deviceId, {
         type: uploadType,
         file: event.target.files[0],
-        order: items.length + 1,
         duration: uploadType === 'IMAGE' ? Number(duration) || 10 : undefined
       });
       event.target.value = '';
@@ -307,7 +306,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
 
     setIsContentPickerOpen(false);
     try {
-      await contentService.attachExisting(deviceId, content.id, items.length + 1);
+      await contentService.attachExisting(deviceId, content.id);
       await loadItems();
       setToastState({ message: 'Content added to device.', type: 'success' });
     } catch (error: unknown) {

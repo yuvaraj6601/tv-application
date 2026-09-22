@@ -22,8 +22,7 @@ export const contentCreateValidation = Joi.object({
     then: webUrl().required(),
     otherwise: Joi.string().allow('').optional()
   }),
-  duration: Joi.number().integer().min(1).optional(),
-  order: Joi.number().integer().min(1).required()
+  duration: Joi.number().integer().min(1).optional()
 });
 
 export const contentLibraryCreateValidation = Joi.object({
@@ -44,8 +43,7 @@ export const contentUpdateValidation = Joi.object({
 });
 
 export const contentAttachValidation = Joi.object({
-  contentId: Joi.string().required(),
-  order: Joi.number().integer().min(1).required()
+  contentId: Joi.string().required()
 });
 
 export const contentDeleteParamsValidation = Joi.object({

@@ -73,7 +73,6 @@ export const contentController = {
       deviceId,
       type: parseType(req.body.type),
       duration: req.body.duration ? Number(req.body.duration) : undefined,
-      order: Number(req.body.order || 1),
       url: req.body.url,
       file: req.file
     });
@@ -90,8 +89,7 @@ export const contentController = {
     const result = await contentService.attachExisting({
       userId,
       deviceId,
-      contentId: req.body.contentId,
-      order: Number(req.body.order)
+      contentId: req.body.contentId
     });
 
     if (result === 'NOT_FOUND') {

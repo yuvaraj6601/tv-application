@@ -13,7 +13,6 @@ interface CreateLibraryContentPayload {
 
 interface CreateAndAttachPayload extends CreateLibraryContentPayload {
   deviceId: string;
-  order: number;
 }
 
 const toPlaylistDto = (item: { order: number; content: { id: string; type: ContentType; url: string; fileName: string | null; duration: number | null } }) => ({
@@ -24,6 +23,15 @@ const toPlaylistDto = (item: { order: number; content: { id: string; type: Conte
   duration: item.content.duration,
   sortOrder: item.order
 });
+
+const getNextOrder = async (deviceId: string): Promise<number> => {
+  const highest = await prisma.playlistItem.aggregate({
+    where: { deviceId },
+    _max: { order: true }
+  });
+
+  return (highest._max.order ?? 0) + 1;
+};
 
 export const contentService = {
   getByUserId: async (userId: string) => {
@@ -71,12 +79,13 @@ export const contentService = {
   },
   createAndAttachToDevice: async (payload: CreateAndAttachPayload) => {
     const content = await contentService.createInLibrary(payload);
+    const order = await getNextOrder(payload.deviceId);
 
     await prisma.playlistItem.create({
       data: {
         deviceId: payload.deviceId,
         contentId: content.id,
-        order: payload.order
+        order
       }
     });
 
@@ -87,7 +96,6 @@ export const contentService = {
     userId: string;
     deviceId: string;
     contentId: string;
-    order: number;
   }): Promise<'NOT_FOUND' | 'ALREADY_ATTACHED' | 'ATTACHED'> => {
     const content = await prisma.content.findFirst({
       where: { id: payload.contentId, userId: payload.userId },
@@ -107,10 +115,10 @@ export const contentService = {
       return 'ALREADY_ATTACHED';
     }
 
-    await prisma.playlistItem.upsert({
-      where: { deviceId_order: { deviceId: payload.deviceId, order: payload.order } },
-      create: { deviceId: payload.deviceId, contentId: payload.contentId, order: payload.order },
-      update: { contentId: payload.contentId }
+    const order = await getNextOrder(payload.deviceId);
+
+    await prisma.playlistItem.create({
+      data: { deviceId: payload.deviceId, contentId: payload.contentId, order }
     });
 
     socketGateway.emitContentUpdated(payload.deviceId);
