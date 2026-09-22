@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider, useSelector } from 'react-redux';
 import NetInfo from '@react-native-community/netinfo';
@@ -9,6 +9,7 @@ import Orientation from 'react-native-orientation-locker';
 import { AppNavigator } from './app.navigator';
 import { RootState, signageStore } from '../store/store';
 import { DeviceOrientation } from '../types/app.types';
+import { storageAdapter } from '../adapters/storage/storage.adapter';
 
 enableScreens();
 
@@ -56,7 +57,19 @@ const OrientedApp = (): React.JSX.Element => {
   );
 };
 
-export const SignageApplication = (): React.JSX.Element => {
+export const SignageApplication = (): React.JSX.Element | null => {
+  const [state, setState] = useState({ isStorageReady: false });
+
+  useEffect(() => {
+    storageAdapter.init().then(() => {
+      setState(prev => ({ ...prev, isStorageReady: true }));
+    });
+  }, []);
+
+  if (!state.isStorageReady) {
+    return null;
+  }
+
   return (
     <Provider store={signageStore}>
       <SafeAreaProvider>

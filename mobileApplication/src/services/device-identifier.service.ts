@@ -1,13 +1,9 @@
 import { NativeModules, Platform } from 'react-native';
-import { MMKV } from 'react-native-mmkv';
+import { storageAdapter } from '../adapters/storage/storage.adapter';
 
 interface DeviceIdentifierNativeModule {
   getDeviceUniqueId: () => Promise<string>;
 }
-
-const storage = new MMKV({
-  id: 'signage-storage'
-});
 
 const DEVICE_ID_KEY = 'device-unique-id';
 
@@ -25,7 +21,7 @@ const generateFallbackIdentifier = (): string => {
 
 export const deviceIdentifierService = {
   getDeviceUniqueId: async (): Promise<string> => {
-    const cachedIdentifier = storage.getString(DEVICE_ID_KEY);
+    const cachedIdentifier = storageAdapter.getString(DEVICE_ID_KEY);
     if (cachedIdentifier) {
       return cachedIdentifier;
     }
@@ -36,7 +32,7 @@ export const deviceIdentifierService = {
         try {
           const nativeIdentifier = await nativeModule.getDeviceUniqueId();
           if (nativeIdentifier && nativeIdentifier.trim().length > 0) {
-            storage.set(DEVICE_ID_KEY, nativeIdentifier);
+            storageAdapter.set(DEVICE_ID_KEY, nativeIdentifier);
             return nativeIdentifier;
           }
         } catch (_error) {
@@ -46,7 +42,7 @@ export const deviceIdentifierService = {
     }
 
     const fallbackIdentifier = generateFallbackIdentifier();
-    storage.set(DEVICE_ID_KEY, fallbackIdentifier);
+    storageAdapter.set(DEVICE_ID_KEY, fallbackIdentifier);
     return fallbackIdentifier;
   }
 };

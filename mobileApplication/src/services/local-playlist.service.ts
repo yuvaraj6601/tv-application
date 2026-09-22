@@ -1,18 +1,14 @@
-import { MMKV } from 'react-native-mmkv';
+import { storageAdapter } from '../adapters/storage/storage.adapter';
 import { PlaylistItemModel } from '../types/app.types';
-
-const storage = new MMKV({
-  id: 'signage-storage'
-});
 
 const PLAYLIST_KEY = 'active-playlist';
 
 export const localPlaylistService = {
   save: (items: PlaylistItemModel[]): void => {
-    storage.set(PLAYLIST_KEY, JSON.stringify(items));
+    storageAdapter.set(PLAYLIST_KEY, JSON.stringify(items));
   },
   get: (): PlaylistItemModel[] => {
-    const raw = storage.getString(PLAYLIST_KEY);
+    const raw = storageAdapter.getString(PLAYLIST_KEY);
     if (!raw) {
       return [];
     }
@@ -28,6 +24,6 @@ export const localPlaylistService = {
     }
   },
   clear: (): void => {
-    storage.delete(PLAYLIST_KEY);
+    storageAdapter.delete(PLAYLIST_KEY);
   }
 };
