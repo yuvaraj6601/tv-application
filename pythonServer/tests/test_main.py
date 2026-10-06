@@ -1,4 +1,5 @@
-from datetime import date, datetime
+import json
+from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 
 import numpy as np
@@ -122,6 +123,94 @@ def test_conflict_zero_duration_new_visitor_is_discarded_and_not_written(tmp_pat
     assert closed == []
     assert pending_new_visitors == {}
     assert not (tmp_path / "temporaryData" / "2026-08-05" / "visitors.jsonl").exists()
+
+
+def test_conflict_zero_duration_new_visitor_is_forgotten_by_registry(tmp_path) -> None:
+    registry = UserRegistry()
+    tracker = SessionTracker()
+    visitor_id, record = registry.identify_or_register(
+        [1.0, 0.0, 0.0], NOW, distance_threshold=0.5, age=28, gender="male"
+    )
+    assert record is not None
+    tracker.record_presence(visitor_id, NOW)
+    pending_new_visitors = {visitor_id: record}
+
+    main.flush_expired_sessions(
+        tracker,
+        tmp_path,
+        absence_timeout_seconds=0,
+        now=NOW,
+        pending_new_visitors=pending_new_visitors,
+        registry=registry,
+    )
+
+    returning_id, returning_record = registry.identify_or_register(
+        [1.0, 0.0, 0.0], NOW + timedelta(minutes=5), distance_threshold=0.5, age=28, gender="male"
+    )
+    assert returning_id != visitor_id
+    assert returning_record is not None
+    assert not (tmp_path / "temporaryData" / "2026-08-05").exists()
+
+
+def test_boundary_zero_duration_known_visitor_stays_in_registry(tmp_path) -> None:
+    registry = UserRegistry()
+    tracker = SessionTracker()
+    known_id, _ = registry.identify_or_register([1.0, 0.0, 0.0], NOW, distance_threshold=0.5, age=28, gender="male")
+    tracker.record_presence(known_id, NOW + timedelta(minutes=1))
+
+    main.flush_expired_sessions(
+        tracker,
+        tmp_path,
+        absence_timeout_seconds=0,
+        now=NOW + timedelta(minutes=1),
+        pending_new_visitors={},
+        registry=registry,
+    )
+
+    matched_id, record = registry.identify_or_register(
+        [1.0, 0.0, 0.0], NOW + timedelta(minutes=5), distance_threshold=0.5, age=28, gender="male"
+    )
+    assert matched_id == known_id
+    assert record is None
+
+
+def test_conflict_every_written_session_has_a_visitor_record_after_glimpse_then_return(tmp_path, monkeypatch) -> None:
+    frame = np.zeros((10, 10, 3), dtype=np.uint8)
+    fake_face = SimpleNamespace(
+        embedding=np.array([1.0, 0.0, 0.0]), bbox=np.array([0.0, 0.0, 10.0, 10.0]), age=30.0, gender=1
+    )
+    seen_faces: list = []
+    monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis(seen_faces))
+
+    registry = UserRegistry()
+    tracker = SessionTracker()
+    pending_new_visitors: dict = {}
+
+    def tick(at: datetime, face_visible: bool) -> None:
+        seen_faces[:] = [fake_face] if face_visible else []
+        pending_new_visitors.update(main.process_frame(frame, registry, tracker, distance_threshold=0.5, now=at))
+        main.flush_expired_sessions(
+            tracker,
+            tmp_path,
+            absence_timeout_seconds=8,
+            now=at,
+            pending_new_visitors=pending_new_visitors,
+            registry=registry,
+        )
+
+    tick(NOW, True)
+    tick(NOW + timedelta(seconds=10), False)
+    tick(NOW + timedelta(minutes=5), True)
+    tick(NOW + timedelta(minutes=5, seconds=6), True)
+    tick(NOW + timedelta(minutes=6), False)
+
+    day_dir = tmp_path / "temporaryData" / "2026-08-05"
+    session_rows = [json.loads(line) for line in (day_dir / "sessions.jsonl").read_text(encoding="utf-8").splitlines()]
+    visitor_rows = [json.loads(line) for line in (day_dir / "visitors.jsonl").read_text(encoding="utf-8").splitlines()]
+
+    assert len(session_rows) == 1
+    assert {row["visitor_id"] for row in session_rows} == {row["visitor_id"] for row in visitor_rows}
+    assert datetime.fromisoformat(visitor_rows[0]["first_seen_at"]) == NOW + timedelta(minutes=5)
 
 
 def test_happy_path_nonzero_duration_new_visitor_is_written(tmp_path) -> None:

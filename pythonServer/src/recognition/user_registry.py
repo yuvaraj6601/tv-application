@@ -31,3 +31,6 @@ class UserRegistry:
             gender=gender,
         )
         return new_visitor_id, record
+
+    def forget(self, visitor_id: str) -> None:
+        self._known_faces = [face for face in self._known_faces if face.visitor_id != visitor_id]

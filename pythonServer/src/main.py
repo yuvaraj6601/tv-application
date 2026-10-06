@@ -52,12 +52,17 @@ def flush_expired_sessions(
     absence_timeout_seconds: int,
     now: datetime,
     pending_new_visitors: dict[str, NewVisitorRecord] | None = None,
+    registry: UserRegistry | None = None,
 ) -> list[FinalizedSession]:
     closed = tracker.close_expired_sessions(now, absence_timeout_seconds)
     written: list[FinalizedSession] = []
     for session in closed:
         pending_record = pending_new_visitors.pop(session.visitor_id, None) if pending_new_visitors else None
         if session.duration_seconds == 0:
+            # The visitor was never persisted, so the registry must forget it too — otherwise the same face
+            # matches the in-memory entry later and its sessions are written with no visitors.jsonl record.
+            if pending_record is not None and registry is not None:
+                registry.forget(session.visitor_id)
             continue
 
         write_session(session, data_dir)
@@ -127,7 +132,7 @@ async def run() -> None:
             new_records = process_frame(frame, registry, tracker, settings.face_match_distance_threshold, now)
             pending_new_visitors.update(new_records)
             flush_expired_sessions(
-                tracker, settings.data_dir, settings.absence_timeout_seconds, now, pending_new_visitors
+                tracker, settings.data_dir, settings.absence_timeout_seconds, now, pending_new_visitors, registry
             )
             await asyncio.sleep(settings.capture_interval_seconds)
     finally:
