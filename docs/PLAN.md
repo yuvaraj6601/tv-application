@@ -317,3 +317,39 @@ As an admin, I want a sidebar with **Device Management** and **Content Managemen
 ### Open questions
 
 None blocking.
+
+## Feature: Save face snapshot for new visitors — 2026-10-06
+
+### User story
+
+As an operator reviewing the Pi's captured data, I want a snapshot of the frame in which each new visitor was first seen, with a green box around that visitor's face, saved next to their visitor and session data so I can visually check who the visitor record refers to. The image is for reference only — nothing reads, uploads, or processes it.
+
+### Behaviour
+
+- When `UserRegistry` registers a new visitor, `process_frame` also renders a snapshot: a copy of that frame with a green (BGR `0,255,0`) 2 px rectangle around **only that visitor's** detected face, encoded as JPEG bytes. Held in memory alongside the pending `NewVisitorRecord`.
+- The snapshot is written **only when the visitor record is written** (first non-zero-duration session closes). A zero-duration glimpse writes no session, no visitor, and no image — the pending snapshot is dropped with the pending record.
+- Saved as `data/temporaryData/<first_seen_at date>/<visitor_id>.jpg` — the same date folder as `visitors.jsonl` / `sessions.jsonl`.
+- Nothing else touches it: not uploaded, not stored in MySQL, not referenced from the `.jsonl` files. `rotate_day` moves it with the day folder; `sync_pending` ignores it and moves the folder to `processedData/` unchanged.
+
+### Schema / endpoint changes
+
+None — no DB model, Alembic migration, API, or env var changes. Python service only (`pythonServer/`).
+
+### Files
+
+- Create `pythonServer/src/adapters/image/image_adapter.py` — `render_face_snapshot(frame, bounding_box) -> bytes` (the only module using `cv2` drawing/encoding; per the global adapters rule), plus empty `__init__.py` package markers
+- Modify `pythonServer/src/storage/daily_writer.py` — `write_visitor_snapshot(jpeg, visitor_id, data_dir, day=None) -> Path`
+- Modify `pythonServer/src/main.py` — `process_frame` optional `snapshots` out-dict; `flush_expired_sessions` optional `pending_snapshots` dict; `run()` wiring
+- Tests: `test_image_adapter.py` (new), `test_daily_writer.py`, `test_main.py`, `test_folder_rotator.py`
+
+### Build order
+
+1. Image adapter + tests
+2. `write_visitor_snapshot` + tests
+3. `process_frame` / `flush_expired_sessions` / `run()` wiring + tests
+4. Rotator regression test (jpg moves with its day folder)
+
+### Open questions
+
+- Disk growth: roughly 30–100 KB per new visitor, and nothing prunes `processedData/` today. A retention policy is out of scope here.
+- Images are only written for visitors with a real (non-zero-duration) session, by design.

@@ -33,3 +33,13 @@ def write_session(session: FinalizedSession, data_dir: str | Path, day: date | N
 def write_new_visitor(record: NewVisitorRecord, data_dir: str | Path, day: date | None = None) -> Path:
     target_day = day or record.first_seen_at.date()
     return _append_jsonl_line(data_dir, target_day, "visitors.jsonl", record.model_dump_json())
+
+
+def write_visitor_snapshot(jpeg: bytes, visitor_id: str, data_dir: str | Path, day: date) -> Path:
+    day_dir = Path(data_dir) / "temporaryData" / day.isoformat()
+    day_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = day_dir / f"{visitor_id}.jpg"
+    file_path.write_bytes(jpeg)
+
+    return file_path

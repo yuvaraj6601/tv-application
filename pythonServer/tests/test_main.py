@@ -2,6 +2,7 @@ import json
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 
+import cv2
 import numpy as np
 
 from src import main
@@ -281,3 +282,214 @@ def test_rotate_stale_days_rotates_multiple_old_dates_but_not_today(tmp_path) ->
     assert not old_dir.exists()
     assert not yesterday_dir.exists()
     assert today_dir.exists()
+
+
+def _face(embedding: list[float], bbox: list[float]) -> SimpleNamespace:
+    return SimpleNamespace(embedding=np.array(embedding), bbox=np.array(bbox), age=30.0, gender=1)
+
+
+def _is_green_around(jpeg: bytes, rows: slice, column: int) -> bool:
+    decoded = cv2.imdecode(np.frombuffer(jpeg, dtype=np.uint8), cv2.IMREAD_COLOR)
+    window = decoded[rows, column].astype(int)
+    return bool(np.any((window[:, 1] > 180) & (window[:, 0] < 90) & (window[:, 2] < 90)))
+
+
+def test_happy_path_process_frame_collects_snapshot_for_new_visitor(monkeypatch) -> None:
+    frame = np.full((100, 200, 3), 40, dtype=np.uint8)
+    monkeypatch.setattr(
+        face_detector, "_get_face_analysis", lambda: _FakeAnalysis([_face([1.0, 0.0, 0.0], [50.0, 30.0, 150.0, 80.0])])
+    )
+    snapshots: dict[str, bytes] = {}
+
+    new_records = main.process_frame(
+        frame, UserRegistry(), SessionTracker(), distance_threshold=0.5, now=NOW, snapshots=snapshots
+    )
+
+    assert list(snapshots) == list(new_records)
+    assert _is_green_around(snapshots[next(iter(new_records))], slice(28, 33), 100)
+
+
+def test_conflict_process_frame_adds_no_snapshot_for_returning_visitor(monkeypatch) -> None:
+    frame = np.full((100, 200, 3), 40, dtype=np.uint8)
+    monkeypatch.setattr(
+        face_detector, "_get_face_analysis", lambda: _FakeAnalysis([_face([1.0, 0.0, 0.0], [50.0, 30.0, 150.0, 80.0])])
+    )
+    registry = UserRegistry()
+    main.process_frame(frame, registry, SessionTracker(), distance_threshold=0.5, now=NOW, snapshots={})
+    snapshots: dict[str, bytes] = {}
+
+    new_records = main.process_frame(
+        frame, registry, SessionTracker(), distance_threshold=0.5, now=NOW + timedelta(seconds=2), snapshots=snapshots
+    )
+
+    assert new_records == {}
+    assert snapshots == {}
+
+
+def test_boundary_process_frame_boxes_only_each_visitors_own_face(monkeypatch) -> None:
+    frame = np.full((100, 200, 3), 40, dtype=np.uint8)
+    faces = [
+        _face([1.0, 0.0, 0.0], [10.0, 20.0, 60.0, 70.0]),
+        _face([0.0, 1.0, 0.0], [120.0, 20.0, 180.0, 70.0]),
+    ]
+    monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis(faces))
+    snapshots: dict[str, bytes] = {}
+
+    new_records = main.process_frame(
+        frame, UserRegistry(), SessionTracker(), distance_threshold=0.5, now=NOW, snapshots=snapshots
+    )
+
+    left_id, right_id = (
+        next(v for v, r in new_records.items() if r.embedding[0] == 1.0),
+        next(v for v, r in new_records.items() if r.embedding[1] == 1.0),
+    )
+    assert _is_green_around(snapshots[left_id], slice(18, 23), 35)
+    assert not _is_green_around(snapshots[left_id], slice(18, 23), 150)
+    assert _is_green_around(snapshots[right_id], slice(18, 23), 150)
+    assert not _is_green_around(snapshots[right_id], slice(18, 23), 35)
+
+
+def test_happy_path_flush_writes_snapshot_beside_visitor_record(tmp_path) -> None:
+    from src.storage.daily_writer import NewVisitorRecord
+
+    tracker = SessionTracker()
+    tracker.record_presence("visitor-1", NOW)
+    tracker.record_presence("visitor-1", NOW + timedelta(seconds=5))
+    pending_new_visitors = {
+        "visitor-1": NewVisitorRecord(
+            visitor_id="visitor-1", embedding=[1.0, 0.0, 0.0], first_seen_at=NOW, age=28, gender="male"
+        )
+    }
+    pending_snapshots = {"visitor-1": b"jpeg-bytes"}
+
+    main.flush_expired_sessions(
+        tracker,
+        tmp_path,
+        absence_timeout_seconds=0,
+        now=NOW + timedelta(seconds=5),
+        pending_new_visitors=pending_new_visitors,
+        pending_snapshots=pending_snapshots,
+    )
+
+    day_dir = tmp_path / "temporaryData" / "2026-08-05"
+    assert (day_dir / "visitor-1.jpg").read_bytes() == b"jpeg-bytes"
+    assert (day_dir / "visitors.jsonl").exists()
+    assert pending_snapshots == {}
+
+
+def test_conflict_zero_duration_visitor_writes_no_snapshot_and_drops_pending_one(tmp_path) -> None:
+    from src.storage.daily_writer import NewVisitorRecord
+
+    tracker = SessionTracker()
+    tracker.record_presence("visitor-1", NOW)
+    pending_new_visitors = {
+        "visitor-1": NewVisitorRecord(
+            visitor_id="visitor-1", embedding=[1.0, 0.0, 0.0], first_seen_at=NOW, age=28, gender="male"
+        )
+    }
+    pending_snapshots = {"visitor-1": b"jpeg-bytes"}
+
+    main.flush_expired_sessions(
+        tracker,
+        tmp_path,
+        absence_timeout_seconds=0,
+        now=NOW,
+        pending_new_visitors=pending_new_visitors,
+        pending_snapshots=pending_snapshots,
+    )
+
+    assert pending_snapshots == {}
+    assert not (tmp_path / "temporaryData").exists()
+
+
+def test_boundary_snapshot_goes_to_first_seen_day_folder_even_if_session_closes_next_day(tmp_path) -> None:
+    from src.storage.daily_writer import NewVisitorRecord
+
+    next_day = NOW + timedelta(days=1)
+    tracker = SessionTracker()
+    tracker.record_presence("visitor-1", next_day)
+    tracker.record_presence("visitor-1", next_day + timedelta(seconds=5))
+    pending_new_visitors = {
+        "visitor-1": NewVisitorRecord(
+            visitor_id="visitor-1", embedding=[1.0, 0.0, 0.0], first_seen_at=NOW, age=28, gender="male"
+        )
+    }
+
+    main.flush_expired_sessions(
+        tracker,
+        tmp_path,
+        absence_timeout_seconds=0,
+        now=next_day + timedelta(seconds=5),
+        pending_new_visitors=pending_new_visitors,
+        pending_snapshots={"visitor-1": b"jpeg-bytes"},
+    )
+
+    first_seen_dir = tmp_path / "temporaryData" / "2026-08-05"
+    assert (first_seen_dir / "visitor-1.jpg").exists()
+    assert (first_seen_dir / "visitors.jsonl").exists()
+    assert not (tmp_path / "temporaryData" / "2026-08-06" / "visitor-1.jpg").exists()
+
+
+def test_boundary_flush_with_missing_snapshot_still_writes_visitor_record(tmp_path) -> None:
+    from src.storage.daily_writer import NewVisitorRecord
+
+    tracker = SessionTracker()
+    tracker.record_presence("visitor-1", NOW)
+    tracker.record_presence("visitor-1", NOW + timedelta(seconds=5))
+    pending_new_visitors = {
+        "visitor-1": NewVisitorRecord(
+            visitor_id="visitor-1", embedding=[1.0, 0.0, 0.0], first_seen_at=NOW, age=28, gender="male"
+        )
+    }
+
+    main.flush_expired_sessions(
+        tracker,
+        tmp_path,
+        absence_timeout_seconds=0,
+        now=NOW + timedelta(seconds=5),
+        pending_new_visitors=pending_new_visitors,
+        pending_snapshots={},
+    )
+
+    day_dir = tmp_path / "temporaryData" / "2026-08-05"
+    assert (day_dir / "visitors.jsonl").exists()
+    assert not list(day_dir.glob("*.jpg"))
+
+
+def test_conflict_only_the_returning_visitor_gets_a_snapshot_after_a_zero_duration_glimpse(
+    tmp_path, monkeypatch
+) -> None:
+    frame = np.full((100, 200, 3), 40, dtype=np.uint8)
+    visible_faces: list = []
+    monkeypatch.setattr(face_detector, "_get_face_analysis", lambda: _FakeAnalysis(visible_faces))
+    registry = UserRegistry()
+    tracker = SessionTracker()
+    pending_new_visitors: dict = {}
+    pending_snapshots: dict[str, bytes] = {}
+
+    def tick(at: datetime, face_visible: bool) -> None:
+        visible_faces[:] = [_face([1.0, 0.0, 0.0], [50.0, 30.0, 150.0, 80.0])] if face_visible else []
+        pending_new_visitors.update(
+            main.process_frame(frame, registry, tracker, distance_threshold=0.5, now=at, snapshots=pending_snapshots)
+        )
+        main.flush_expired_sessions(
+            tracker,
+            tmp_path,
+            absence_timeout_seconds=8,
+            now=at,
+            pending_new_visitors=pending_new_visitors,
+            registry=registry,
+            pending_snapshots=pending_snapshots,
+        )
+
+    tick(NOW, True)
+    tick(NOW + timedelta(seconds=10), False)
+    tick(NOW + timedelta(minutes=5), True)
+    tick(NOW + timedelta(minutes=5, seconds=6), True)
+    tick(NOW + timedelta(minutes=6), False)
+
+    day_dir = tmp_path / "temporaryData" / "2026-08-05"
+    saved_ids = [json.loads(line)["visitor_id"] for line in (day_dir / "visitors.jsonl").read_text().splitlines()]
+    assert len(saved_ids) == 1
+    assert [p.name for p in day_dir.glob("*.jpg")] == [f"{saved_ids[0]}.jpg"]
+    assert pending_snapshots == {}

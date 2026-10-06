@@ -7,6 +7,7 @@ import getmac
 import numpy as np
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from src.adapters.image.image_adapter import render_face_snapshot
 from src.capture.camera_capture import CameraCapture
 from src.capture.face_detector import detect_faces
 from src.config.settings import settings
@@ -15,7 +16,7 @@ from src.db.repository import get_known_faces
 from src.logging_config import configure_logging
 from src.recognition.user_registry import UserRegistry
 from src.session.session_tracker import FinalizedSession, SessionTracker
-from src.storage.daily_writer import NewVisitorRecord, write_new_visitor, write_session
+from src.storage.daily_writer import NewVisitorRecord, write_new_visitor, write_session, write_visitor_snapshot
 from src.storage.db_syncer import sync_pending
 from src.storage.folder_rotator import rotate_day
 
@@ -34,6 +35,7 @@ def process_frame(
     tracker: SessionTracker,
     distance_threshold: float,
     now: datetime,
+    snapshots: dict[str, bytes] | None = None,
 ) -> dict[str, NewVisitorRecord]:
     new_records: dict[str, NewVisitorRecord] = {}
     for detection in detect_faces(frame):
@@ -42,6 +44,8 @@ def process_frame(
         )
         if new_record is not None:
             new_records[visitor_id] = new_record
+            if snapshots is not None:
+                snapshots[visitor_id] = render_face_snapshot(frame, detection.bounding_box)
         tracker.record_presence(visitor_id, now)
     return new_records
 
@@ -53,11 +57,13 @@ def flush_expired_sessions(
     now: datetime,
     pending_new_visitors: dict[str, NewVisitorRecord] | None = None,
     registry: UserRegistry | None = None,
+    pending_snapshots: dict[str, bytes] | None = None,
 ) -> list[FinalizedSession]:
     closed = tracker.close_expired_sessions(now, absence_timeout_seconds)
     written: list[FinalizedSession] = []
     for session in closed:
         pending_record = pending_new_visitors.pop(session.visitor_id, None) if pending_new_visitors else None
+        pending_snapshot = pending_snapshots.pop(session.visitor_id, None) if pending_snapshots else None
         if session.duration_seconds == 0:
             # The visitor was never persisted, so the registry must forget it too — otherwise the same face
             # matches the in-memory entry later and its sessions are written with no visitors.jsonl record.
@@ -68,6 +74,10 @@ def flush_expired_sessions(
         write_session(session, data_dir)
         if pending_record is not None:
             write_new_visitor(pending_record, data_dir)
+            if pending_snapshot is not None:
+                write_visitor_snapshot(
+                    pending_snapshot, pending_record.visitor_id, data_dir, pending_record.first_seen_at.date()
+                )
         written.append(session)
     return written
 
@@ -108,6 +118,7 @@ async def run() -> None:
     registry = UserRegistry(known_faces=known_faces)
     tracker = SessionTracker()
     pending_new_visitors: dict[str, NewVisitorRecord] = {}
+    pending_snapshots: dict[str, bytes] = {}
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
@@ -129,10 +140,18 @@ async def run() -> None:
         while True:
             frame = capture.read_frame()
             now = datetime.now()
-            new_records = process_frame(frame, registry, tracker, settings.face_match_distance_threshold, now)
+            new_records = process_frame(
+                frame, registry, tracker, settings.face_match_distance_threshold, now, pending_snapshots
+            )
             pending_new_visitors.update(new_records)
             flush_expired_sessions(
-                tracker, settings.data_dir, settings.absence_timeout_seconds, now, pending_new_visitors, registry
+                tracker,
+                settings.data_dir,
+                settings.absence_timeout_seconds,
+                now,
+                pending_new_visitors,
+                registry,
+                pending_snapshots,
             )
             await asyncio.sleep(settings.capture_interval_seconds)
     finally:

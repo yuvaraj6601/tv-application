@@ -2,7 +2,7 @@ import json
 from datetime import date, datetime
 
 from src.session.session_tracker import FinalizedSession
-from src.storage.daily_writer import NewVisitorRecord, write_new_visitor, write_session
+from src.storage.daily_writer import NewVisitorRecord, write_new_visitor, write_session, write_visitor_snapshot
 
 
 def _sample_session(visitor_id: str = "visitor-1") -> FinalizedSession:
@@ -103,3 +103,42 @@ def test_new_visitor_written_to_separate_file_from_sessions(tmp_path) -> None:
     day_dir = tmp_path / "temporaryData" / "2026-08-05"
     assert (day_dir / "sessions.jsonl").exists()
     assert (day_dir / "visitors.jsonl").exists()
+
+
+def test_happy_path_write_visitor_snapshot_creates_folder_and_file(tmp_path) -> None:
+    jpeg = b"\xff\xd8fake-jpeg-bytes\xff\xd9"
+
+    file_path = write_visitor_snapshot(jpeg, "visitor-1", data_dir=tmp_path, day=date(2026, 8, 5))
+
+    assert file_path == tmp_path / "temporaryData" / "2026-08-05" / "visitor-1.jpg"
+    assert file_path.read_bytes() == jpeg
+
+
+def test_conflict_snapshot_sits_beside_jsonl_files_without_touching_them(tmp_path) -> None:
+    write_new_visitor(_sample_visitor_record("visitor-1"), data_dir=tmp_path)
+    write_session(_sample_session("visitor-1"), data_dir=tmp_path)
+    day_dir = tmp_path / "temporaryData" / "2026-08-05"
+    visitors_before = (day_dir / "visitors.jsonl").read_text(encoding="utf-8")
+    sessions_before = (day_dir / "sessions.jsonl").read_text(encoding="utf-8")
+
+    write_visitor_snapshot(b"jpeg", "visitor-1", data_dir=tmp_path, day=date(2026, 8, 5))
+
+    assert sorted(p.name for p in day_dir.iterdir()) == ["sessions.jsonl", "visitor-1.jpg", "visitors.jsonl"]
+    assert (day_dir / "visitors.jsonl").read_text(encoding="utf-8") == visitors_before
+    assert (day_dir / "sessions.jsonl").read_text(encoding="utf-8") == sessions_before
+
+
+def test_boundary_snapshots_for_different_visitors_are_separate_files(tmp_path) -> None:
+    write_visitor_snapshot(b"first", "visitor-1", data_dir=tmp_path, day=date(2026, 8, 5))
+    write_visitor_snapshot(b"second", "visitor-2", data_dir=tmp_path, day=date(2026, 8, 5))
+
+    day_dir = tmp_path / "temporaryData" / "2026-08-05"
+    assert (day_dir / "visitor-1.jpg").read_bytes() == b"first"
+    assert (day_dir / "visitor-2.jpg").read_bytes() == b"second"
+
+
+def test_boundary_snapshot_goes_to_the_given_day_folder(tmp_path) -> None:
+    write_visitor_snapshot(b"jpeg", "visitor-1", data_dir=tmp_path, day=date(2026, 8, 4))
+
+    assert (tmp_path / "temporaryData" / "2026-08-04" / "visitor-1.jpg").exists()
+    assert not (tmp_path / "temporaryData" / "2026-08-05").exists()
