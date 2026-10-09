@@ -40,6 +40,7 @@ src/
     assets.imports.ts
   interfaces/
   adapters/
+    logger/logger.adapter.ts  # warn/error wrapper (console.* is only called here)
 ```
 
 > Note: This project uses `services/` for the API + business logic layer. Treat as equivalent to `models/` + service utilities from the skill.
@@ -150,6 +151,7 @@ export const pairingService = {
 
 ```bash
 npm run typecheck     # npx tsc --noEmit
+npm test              # jest + @testing-library/react-native (__tests__/)
 npm run lint          # eslint
 npm run android       # run on Android
 ```

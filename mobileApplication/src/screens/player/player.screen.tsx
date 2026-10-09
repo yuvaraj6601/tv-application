@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import Video from 'react-native-video';
 import WebView from 'react-native-webview';
@@ -11,6 +11,7 @@ import { tvSocketService } from '../../services/socket.service';
 import { syncService } from '../../services/sync.service';
 import { heartbeatService } from '../../services/heartbeat.service';
 import { localPlaylistService } from '../../services/local-playlist.service';
+import { logger } from '../../adapters/logger/logger.adapter';
 import { DeviceOrientation } from '../../types/app.types';
 import { TvRotatedSize, TvRotatedView } from '../../components/common/tv-rotated-view/tv-rotated-view.component';
 
@@ -22,6 +23,8 @@ export const PlayerScreen = (): React.JSX.Element => {
   const deviceToken = useSelector((state: RootState) => state.device.deviceToken);
   const syncInProgressRef = useRef<boolean>(false);
   const wasOfflineRef = useRef<boolean>(false);
+  const resyncQueuedRef = useRef<boolean>(false);
+  const [state, setState] = useState({ syncVersion: 0 });
 
   const currentItem = useMemo(() => {
     return items[currentIndex] || null;
@@ -51,6 +54,8 @@ export const PlayerScreen = (): React.JSX.Element => {
 
     const resync = (): void => {
       if (syncInProgressRef.current) {
+        // An update arrived mid-sync: run one more sync afterwards instead of dropping it.
+        resyncQueuedRef.current = true;
         return;
       }
 
@@ -61,10 +66,17 @@ export const PlayerScreen = (): React.JSX.Element => {
           dispatch(setPlaylist(nextItems));
           dispatch(setOrientation(orientation));
           localPlaylistService.save(nextItems);
+          setState(prev => ({ ...prev, syncVersion: prev.syncVersion + 1 }));
         })
-        .catch(() => undefined)
+        .catch(error => {
+          logger.error('Content sync failed', error);
+        })
         .finally(() => {
           syncInProgressRef.current = false;
+          if (resyncQueuedRef.current) {
+            resyncQueuedRef.current = false;
+            resync();
+          }
         });
     };
 
@@ -122,22 +134,29 @@ export const PlayerScreen = (): React.JSX.Element => {
   }
 
   const renderMedia = (rotatedSize: TvRotatedSize | null): React.JSX.Element => {
+    // Remount after every sync: files in active/ are replaced, so a player holding the same path would keep a stale handle.
+    const mediaKey = `${currentItem.id}-${currentItem.order}-${state.syncVersion}`;
     const sizedMediaStyle = rotatedSize ? [styles.media, { flex: undefined, width: rotatedSize.width, height: rotatedSize.height }] : styles.media;
 
     if (currentItem.type === 'IMAGE') {
-      return <Image style={sizedMediaStyle} source={{ uri: `file://${currentItem.localPath}` }} resizeMode="contain" />;
+      return <Image key={mediaKey} style={sizedMediaStyle} source={{ uri: `file://${currentItem.localPath}` }} resizeMode="contain" />;
     }
 
     if (currentItem.type === 'VIDEO') {
       const isSingleItemPlaylist = items.length === 1;
       return (
         <Video
+          key={mediaKey}
           source={{ uri: `file://${currentItem.localPath}` }}
           style={sizedMediaStyle}
           resizeMode="contain"
           repeat={isSingleItemPlaylist}
           controls={false}
           useTextureView={Platform.isTV}
+          onError={error => {
+            logger.warn(`Video playback failed for ${currentItem.id}, skipping`, error.error.errorString);
+            dispatch(moveNext());
+          }}
           onEnd={() => {
             if (!isSingleItemPlaylist) {
               dispatch(moveNext());
@@ -148,7 +167,7 @@ export const PlayerScreen = (): React.JSX.Element => {
     }
 
     const webpageUri = currentItem.localPath ? `file://${currentItem.localPath}` : currentItem.url;
-    return <WebView source={{ uri: webpageUri }} style={sizedMediaStyle} javaScriptEnabled domStorageEnabled />;
+    return <WebView key={mediaKey} source={{ uri: webpageUri }} style={sizedMediaStyle} javaScriptEnabled domStorageEnabled />;
   };
 
   return <TvRotatedView>{rotatedSize => renderMedia(rotatedSize)}</TvRotatedView>;
