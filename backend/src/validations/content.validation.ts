@@ -22,7 +22,7 @@ export const contentCreateValidation = Joi.object({
     then: webUrl().required(),
     otherwise: Joi.string().allow('').optional()
   }),
-  duration: Joi.number().integer().min(1).optional()
+  duration: Joi.number().integer().min(1).max(9999).optional()
 });
 
 export const contentLibraryCreateValidation = Joi.object({
@@ -32,13 +32,13 @@ export const contentLibraryCreateValidation = Joi.object({
     then: webUrl().required(),
     otherwise: Joi.string().allow('').optional()
   }),
-  duration: Joi.number().integer().min(1).optional()
+  duration: Joi.number().integer().min(1).max(9999).optional()
 });
 
 export const contentUpdateValidation = Joi.object({
   type: Joi.string().valid('IMAGE', 'VIDEO', 'WEBPAGE').optional(),
   url: webUrl().optional(),
-  duration: Joi.number().integer().min(1).optional(),
+  duration: Joi.number().integer().min(1).max(9999).optional(),
   order: Joi.number().integer().min(1).optional()
 });
 

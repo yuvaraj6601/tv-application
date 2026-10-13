@@ -6,16 +6,17 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  size?: 'default' | 'large';
 }
 
-export const Modal = ({ isOpen, title, onClose, children }: ModalProps): React.JSX.Element | null => {
+export const Modal = ({ isOpen, title, onClose, children, size = 'default' }: ModalProps): React.JSX.Element | null => {
   if (!isOpen) {
     return null;
   }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={event => event.stopPropagation()}>
+      <div className={`modal${size === 'large' ? ' modal--large' : ''}`} onClick={event => event.stopPropagation()}>
         <div className="modal__header">
           <h3>{title}</h3>
           <button type="button" className="modal__close" onClick={onClose}>

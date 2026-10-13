@@ -27,6 +27,9 @@
 @media (max-width: 768px) {
   .sidebar-toggle {
     display: flex;
+    top: 8px;
+    left: auto;
+    right: 12px;
   }
 
   .sidebar-overlay {
