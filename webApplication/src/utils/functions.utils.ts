@@ -18,6 +18,18 @@ const DEVICE_NAME_MAX_LENGTH = 120;
 export const isValidDeviceName = (value: string): boolean =>
   value.trim().length >= DEVICE_NAME_MIN_LENGTH && value.trim().length <= DEVICE_NAME_MAX_LENGTH;
 
+export const DEFAULT_DURATION_SECONDS = 10;
+export const MIN_DURATION_SECONDS = 1;
+export const MAX_DURATION_SECONDS = 9999;
+
+export const clampDuration = (value: string | number): number => {
+  const parsed = Number(value);
+  if (!parsed) {
+    return DEFAULT_DURATION_SECONDS;
+  }
+  return Math.min(MAX_DURATION_SECONDS, Math.max(MIN_DURATION_SECONDS, Math.floor(parsed)));
+};
+
 const TIMESTAMP_PREFIX_PATTERN = /^\d+-/;
 
 const stripTimestampPrefix = (value: string): string => value.replace(TIMESTAMP_PREFIX_PATTERN, '');

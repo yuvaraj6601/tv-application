@@ -37,14 +37,24 @@ export const contentService = {
     body.append('duration', String(payload.duration));
     await dashboardAxios.post(`/api/v1/device/${deviceId}/content`, body);
   },
-  uploadMedia: async (deviceId: string, payload: { type: 'IMAGE' | 'VIDEO'; file: File; duration?: number }): Promise<void> => {
+  uploadMedia: async (
+    deviceId: string,
+    payload: { type: 'IMAGE' | 'VIDEO'; file: File; duration?: number },
+    onProgress?: (percent: number) => void
+  ): Promise<void> => {
     const body = new FormData();
     body.append('type', payload.type);
     if (payload.duration) {
       body.append('duration', String(payload.duration));
     }
     body.append('file', payload.file);
-    await dashboardAxios.post(`/api/v1/device/${deviceId}/content`, body);
+    await dashboardAxios.post(`/api/v1/device/${deviceId}/content`, body, {
+      onUploadProgress: event => {
+        if (onProgress && event.total) {
+          onProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      }
+    });
   },
   attachExisting: async (deviceId: string, contentId: string): Promise<void> => {
     await dashboardAxios.post(`/api/v1/device/${deviceId}/content/attach`, { contentId });

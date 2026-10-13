@@ -13,7 +13,7 @@ interface ContentThumbnailProps {
 
 // Uploaded asset URLs are stored server-relative (e.g. "/uploads/..."); resolve them against the
 // API origin so they don't resolve against the dashboard's own origin instead.
-const resolveAssetUrl = (url: string): string => (url.startsWith('/') ? `${apiBaseUrl}${url}` : url);
+export const resolveAssetUrl = (url: string): string => (url.startsWith('/') ? `${apiBaseUrl}${url}` : url);
 
 const handleVideoLoadedMetadata = (event: React.SyntheticEvent<HTMLVideoElement>): void => {
   const video = event.currentTarget;
