@@ -5,6 +5,23 @@ DigitalSignageTV as the TV's home screen. Selecting it as the default Home app i
 a per-device setup step; installing the APK alone does not change that setting.
 The existing boot receiver is a fallback, not a replacement for selecting Home.
 
+## In-app setup
+
+When the Android app starts and is not the effective default Home app, it asks
+"Set as a launcher?". Choose **Yes** and approve DigitalSignageTV in Android's
+system dialog. Android 10 and later use the Home role request when available;
+other devices fall back to Home settings, then default-app settings.
+
+On returning, the app checks which activity Android actually resolves for Home
+rather than trusting the dialog result. If setup was cancelled or did not take
+effect, it offers settings and explains that manufacturer restrictions may need
+administrator setup. **Later** continues to the signage app. The prompt appears
+once per activity session and is skipped when the app is already the default.
+
+An ordinary installed APK cannot silently select itself, disable another launcher,
+or guarantee automatic launcher setup on every Android TV. The ADB steps below
+are for TVs whose firmware does not honor the user-selected Home app.
+
 ## Build and configure
 
 Use a release build for unattended startup. It bundles JavaScript and does not

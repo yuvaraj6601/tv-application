@@ -1,0 +1,10 @@
+<resources>
+    <string name="launcher_prompt_title">Set as a launcher?</string>
+    <string name="launcher_prompt_message">Use DigitalSignageTV as this TV’s Home app so it opens when the TV starts. Select Yes, then approve DigitalSignageTV on the Android screen. The Home button will also open this app.</string>
+    <string name="launcher_yes">Yes</string>
+    <string name="launcher_later">Later</string>
+    <string name="launcher_open_settings">Open settings</string>
+    <string name="launcher_setup_success">DigitalSignageTV is now this TV’s Home app.</string>
+    <string name="launcher_setup_incomplete">Launcher setup incomplete</string>
+    <string name="launcher_setup_help">DigitalSignageTV is not currently this TV’s default Home app. In Settings, select DigitalSignageTV as the Home app or default launcher, and choose Always if asked.\n\nSome TV manufacturers restrict this setting or give their built-in launcher priority. If the option is missing or does not take effect, contact your TV administrator for one-time device setup. The app cannot override these restrictions.\n\nChoose Later to continue using the app.</string>
+</resources>
