@@ -1,0 +1,9 @@
+<resources>
+    <string name="startup_prompt_title">Open when the TV starts?</string>
+    <string name="startup_prompt_message">To open DigitalSignageTV automatically after a restart, Android requires the “Display over other apps” permission. Select Enable, find DigitalSignageTV, and allow it on the next screen.\n\nYour current Home launcher will stay unchanged. This app does not draw floating windows.</string>
+    <string name="startup_enable">Enable</string>
+    <string name="startup_later">Later</string>
+    <string name="startup_permission_enabled">Startup permission enabled. Restart the TV to verify automatic startup.</string>
+    <string name="startup_help_title">Startup permission is not enabled</string>
+    <string name="startup_help_message">Allow “Display over other apps” for DigitalSignageTV in the TV’s special app access settings. If your TV does not offer this option, ask your administrator to configure startup access. Some manufacturers also require an auto-start setting.\n\nChoose Later to use the app manually. Your Home launcher will stay unchanged.</string>
+</resources>
