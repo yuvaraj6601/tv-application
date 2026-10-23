@@ -28,7 +28,9 @@
             android:name=".boot.BootReceiver"
             android:enabled="true"
             android:exported="false">
-            <intent-filter>
+            <!-- Prefer early delivery on Android versions that order boot receivers
+                 across apps. Stay below the system-reserved priority of 1000. -->
+            <intent-filter android:priority="999">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>

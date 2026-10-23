@@ -17,6 +17,12 @@ credential-protected storage. On Android 10+, the receiver skips startup if the
 permission is absent. Older Android versions do not require this exception.
 Google TV remains available using the Home button and normal Settings shortcuts.
 
+The boot receiver requests priority 999 to reduce time spent behind other apps
+in the ordered boot broadcast queue on older Android versions. On the tested
+Android 11 Mi TV, the original priority-0 receiver process started about 59 seconds
+after boot broadcast dispatch began. This priority is a best-effort optimization:
+Android 16 does not guarantee broadcast ordering across different processes.
+
 ## Build and install
 
 ```sh
