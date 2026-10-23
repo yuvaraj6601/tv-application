@@ -1,5 +1,7 @@
 import { dashboardAxios } from '../utils/axios.utils';
 
+const MEDIA_UPLOAD_TIMEOUT_MS = 15 * 60 * 1000;
+
 export type DashboardContentType = 'IMAGE' | 'VIDEO' | 'WEBPAGE';
 
 export interface DeviceContentItemModel {
@@ -49,6 +51,7 @@ export const contentService = {
     }
     body.append('file', payload.file);
     await dashboardAxios.post(`/api/v1/device/${deviceId}/content`, body, {
+      timeout: MEDIA_UPLOAD_TIMEOUT_MS,
       onUploadProgress: event => {
         if (onProgress && event.total) {
           onProgress(Math.round((event.loaded / event.total) * 100));
@@ -83,7 +86,9 @@ export const contentService = {
       body.append('duration', String(payload.duration));
     }
     body.append('file', payload.file);
-    await dashboardAxios.post('/api/v1/content', body);
+    await dashboardAxios.post('/api/v1/content', body, {
+      timeout: MEDIA_UPLOAD_TIMEOUT_MS
+    });
   },
   deleteFromLibrary: async (contentId: string): Promise<void> => {
     await dashboardAxios.delete(`/api/v1/content/${contentId}`);

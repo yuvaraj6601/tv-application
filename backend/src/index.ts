@@ -11,6 +11,8 @@ import { adminBootstrapService } from './services/admin-bootstrap.service';
 dotenv.config();
 
 const server = http.createServer(app);
+// Allow large media request bodies to finish within the dashboard's upload window.
+server.requestTimeout = 15 * 60 * 1000;
 
 const io = new Server(server, {
   cors: {
