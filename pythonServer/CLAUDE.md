@@ -37,8 +37,9 @@ src/capture/camera_capture.py      — CameraCapture: open()/read_frame()/close(
 src/storage/daily_writer.py        — write_session(session, data_dir, day=None) -> Path; write_new_visitor(record: NewVisitorRecord, data_dir, day=None) -> Path; append FinalizedSession/NewVisitorRecord as JSON lines under data/temporaryData/<day>/{sessions,visitors}.jsonl; write_visitor_snapshot(jpeg, visitor_id, data_dir, day) -> Path writes data/temporaryData/<day>/<visitor_id>.jpg beside them (day is required — callers pass the visitor's first_seen_at date)
 src/storage/folder_rotator.py      — rotate_day(data_dir, day) -> Path | None; moves temporaryData/<day> into syncData/<day>, merging file-by-file into an existing partial syncData/<day> if one exists
 src/storage/db_syncer.py           — sync_pending(session_factory, data_dir, pi_id) -> list[Path]; connectivity check (probes the DB itself, no separate network probe), reads visitors.jsonl/sessions.jsonl per day-folder under syncData/, upserts+inserts via repository.py, moves each successfully-synced day to processedData/; failures leave that day untouched in syncData/ for retry, other days still proceed
+src/recognition/known_faces_loader.py — load_known_faces(session_factory, pi_id, cache_path) -> (faces, from_db): reads the DB and writes data/knownFaces.json, falls back to that cache (or []) when the DB is unreachable; refresh_known_faces(registry, session_factory, pi_id, cache_path) -> bool merges DB faces into the running UserRegistry (UserRegistry.merge_known_faces) once the DB is back — main.py runs it every FACE_REFRESH_INTERVAL_SECONDS until it succeeds
 src/db/models.py                   — SQLAlchemy models: Visitor (with nullable age: int, gender: str, captured at first sighting only), Session (with (pi_id, started_at) index), SyncLog
-src/db/connection.py               — async engine/session factory, connect_db() logs success or exits on failure
+src/db/connection.py               — async engine/session factory, check_db_connection(session_factory) -> bool logs a warning and returns False when the DB is unreachable (never exits, so the service starts offline)
 src/db/repository.py               — async DB ops for db_syncer/user_registry: get_known_faces(session, pi_id), upsert_visitor(session, visitor_id, pi_id, embedding, first_seen_at, age, gender) -> bool (get-or-create), insert_sessions(session, pi_id, sessions), record_sync(session, pi_id, sync_date, rows_synced) (accumulates), get_total_watch_time_seconds, get_rows_synced
 alembic/versions/0001_create_visitors_sessions_sync_log.py — initial migration, matches src/db/models.py exactly
 alembic/versions/0002_add_visitor_age_gender.py — adds nullable visitors.age (INT), visitors.gender (VARCHAR(10))
@@ -53,7 +54,8 @@ ABSENCE_TIMEOUT_SECONDS
 FACE_MATCH_DISTANCE_THRESHOLD      — cosine distance (1 - cosine similarity) for InsightFace embeddings; default 0.6 (2026-08-06: tuned 0.5→0.6→0.7 during real-webcam testing, each too strict/caused duplicate visitors, then set down to 0.4, then further to 0.2 per explicit request; 2026-08-18: raised back to 0.55 — 0.2 was rejecting real re-sightings as new visitors, worsened by visitors standing 50-100cm+ from the camera; 0.55 is the upper end of the 0.4-0.6 target range for this embedding model; 2026-08-19: model switched buffalo_s→buffalo_l, 0.55 carried over as a starting point then raised to 0.6 after real-world use showed intermittent re-registration of the same visitor — still approximate, pending further empirical validation against buffalo_l's distance distribution); lower = stricter/more duplicate visitors, higher = looser/more tolerant of angle-lighting variation
 DATA_DIR
 ROTATION_CHECK_INTERVAL_SECONDS
-SYNC_INTERVAL_SECONDS
+SYNC_INTERVAL_SECONDS              — default 3600 (hourly)
+FACE_REFRESH_INTERVAL_SECONDS      — default 60; offline-startup retry for known faces
 
 ## Validation commands
 uv run mypy src

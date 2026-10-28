@@ -5,10 +5,11 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/pythonServer
-EnvironmentFile=/opt/pythonServer/.env
-ExecStart=/usr/local/bin/uv run python -m src.main
-Restart=on-failure
+User=holobox
+WorkingDirectory=/home/holobox/projects/pythonServer
+ExecStart=/home/holobox/projects/pythonServer/.venv/bin/python -m src.main
+Environment=PYTHONUNBUFFERED=1
+Restart=always
 RestartSec=5
 
 [Install]
