@@ -11,9 +11,9 @@ from src.adapters.image.image_adapter import render_face_snapshot
 from src.capture.camera_capture import CameraCapture
 from src.capture.face_detector import detect_faces
 from src.config.settings import settings
-from src.db.connection import SessionLocal, connect_db
-from src.db.repository import get_known_faces
+from src.db.connection import SessionLocal, check_db_connection
 from src.logging_config import configure_logging
+from src.recognition.known_faces_loader import load_known_faces, refresh_known_faces
 from src.recognition.user_registry import UserRegistry
 from src.session.session_tracker import FinalizedSession, SessionTracker
 from src.storage.daily_writer import NewVisitorRecord, write_new_visitor, write_session, write_visitor_snapshot
@@ -106,15 +106,28 @@ def rotate_stale_days(data_dir: str | Path, today: date) -> list[Path]:
     return rotated
 
 
+FACE_REFRESH_JOB_ID = "refresh_known_faces"
+
+
+async def refresh_known_faces_once(
+    scheduler: AsyncIOScheduler, registry: UserRegistry, pi_id: str, cache_path: Path
+) -> None:
+    if await refresh_known_faces(registry, SessionLocal, pi_id, cache_path):
+        logger.info("DB reachable again; known faces refreshed")
+        scheduler.remove_job(FACE_REFRESH_JOB_ID)
+
+
 async def run() -> None:
     configure_logging()
-    await connect_db()
+    await check_db_connection()
 
     pi_id = resolve_pi_id(settings.environment, settings.pi_id)
     logger.info("Starting pythonServer for pi_id=%s", pi_id)
 
-    async with SessionLocal() as session:
-        known_faces = await get_known_faces(session, pi_id)
+    known_faces_cache = Path(settings.data_dir) / "knownFaces.json"
+    known_faces, faces_loaded_from_db = await load_known_faces(SessionLocal, pi_id, known_faces_cache)
+    if not faces_loaded_from_db:
+        logger.warning("Starting offline with %d cached known faces; will retry the DB", len(known_faces))
     registry = UserRegistry(known_faces=known_faces)
     tracker = SessionTracker()
     pending_new_visitors: dict[str, NewVisitorRecord] = {}
@@ -132,6 +145,14 @@ async def run() -> None:
         seconds=settings.sync_interval_seconds,
         args=[SessionLocal, settings.data_dir, pi_id],
     )
+    if not faces_loaded_from_db:
+        scheduler.add_job(
+            refresh_known_faces_once,
+            "interval",
+            seconds=settings.face_refresh_interval_seconds,
+            args=[scheduler, registry, pi_id, known_faces_cache],
+            id=FACE_REFRESH_JOB_ID,
+        )
     scheduler.start()
 
     capture = CameraCapture(frame_width=settings.camera_frame_width, frame_height=settings.camera_frame_height)

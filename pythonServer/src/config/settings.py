@@ -17,7 +17,8 @@ class Settings(BaseSettings):
 
     data_dir: str = "data"
     rotation_check_interval_seconds: int = 3600
-    sync_interval_seconds: int = 300
+    sync_interval_seconds: int = 3600
+    face_refresh_interval_seconds: int = 60
 
 
 settings = Settings()

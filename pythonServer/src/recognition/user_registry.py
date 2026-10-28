@@ -34,3 +34,10 @@ class UserRegistry:
 
     def forget(self, visitor_id: str) -> None:
         self._known_faces = [face for face in self._known_faces if face.visitor_id != visitor_id]
+
+    def merge_known_faces(self, faces: list[KnownFace]) -> None:
+        existing_ids = {face.visitor_id for face in self._known_faces}
+        for face in faces:
+            if face.visitor_id not in existing_ids:
+                self._known_faces.append(face)
+                existing_ids.add(face.visitor_id)

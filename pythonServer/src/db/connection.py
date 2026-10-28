@@ -1,5 +1,4 @@
 import logging
-import sys
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -11,10 +10,12 @@ engine = create_async_engine(settings.pi_analytics_database_url)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
-async def connect_db() -> None:
+async def check_db_connection(session_factory: async_sessionmaker[AsyncSession] = SessionLocal) -> bool:
     try:
-        async with engine.connect():
-            logger.info("Database connected")
+        async with session_factory() as session:
+            await session.connection()
     except Exception as err:
-        logger.error("Database connection failed: %s", err)
-        sys.exit(1)
+        logger.warning("Database unreachable: %s", err)
+        return False
+    logger.info("Database connected")
+    return True
