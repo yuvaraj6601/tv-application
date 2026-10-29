@@ -157,6 +157,7 @@ async def run() -> None:
 
     capture = CameraCapture(frame_width=settings.camera_frame_width, frame_height=settings.camera_frame_height)
     capture.open()
+    logger.info("Camera opened, capture loop started")
     try:
         while True:
             frame = capture.read_frame()

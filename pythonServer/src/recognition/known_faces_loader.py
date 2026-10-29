@@ -1,9 +1,11 @@
+import asyncio
 import json
 import logging
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from src.config.settings import settings
 from src.db.repository import get_known_faces
 from src.recognition.face_matcher import KnownFace
 from src.recognition.user_registry import UserRegistry
@@ -33,21 +35,28 @@ def _read_cache(cache_path: Path) -> list[KnownFace]:
         return []
 
 
+async def _query_known_faces(session_factory: async_sessionmaker[AsyncSession], pi_id: str) -> list[KnownFace]:
+    async with session_factory() as session:
+        return await get_known_faces(session, pi_id)
+
+
 async def _fetch_from_db(
-    session_factory: async_sessionmaker[AsyncSession], pi_id: str
+    session_factory: async_sessionmaker[AsyncSession], pi_id: str, timeout_seconds: float
 ) -> list[KnownFace] | None:
     try:
-        async with session_factory() as session:
-            return await get_known_faces(session, pi_id)
+        return await asyncio.wait_for(_query_known_faces(session_factory, pi_id), timeout_seconds)
     except Exception as err:
-        logger.warning("Could not load known faces from DB: %s", err)
+        logger.warning("Could not load known faces from DB: %r", err)
         return None
 
 
 async def load_known_faces(
-    session_factory: async_sessionmaker[AsyncSession], pi_id: str, cache_path: Path
+    session_factory: async_sessionmaker[AsyncSession],
+    pi_id: str,
+    cache_path: Path,
+    timeout_seconds: float = settings.db_query_timeout_seconds,
 ) -> tuple[list[KnownFace], bool]:
-    faces = await _fetch_from_db(session_factory, pi_id)
+    faces = await _fetch_from_db(session_factory, pi_id, timeout_seconds)
     if faces is not None:
         _write_cache(faces, cache_path)
         return faces, True
@@ -55,9 +64,13 @@ async def load_known_faces(
 
 
 async def refresh_known_faces(
-    registry: UserRegistry, session_factory: async_sessionmaker[AsyncSession], pi_id: str, cache_path: Path
+    registry: UserRegistry,
+    session_factory: async_sessionmaker[AsyncSession],
+    pi_id: str,
+    cache_path: Path,
+    timeout_seconds: float = settings.db_query_timeout_seconds,
 ) -> bool:
-    faces = await _fetch_from_db(session_factory, pi_id)
+    faces = await _fetch_from_db(session_factory, pi_id, timeout_seconds)
     if faces is None:
         return False
     registry.merge_known_faces(faces)
