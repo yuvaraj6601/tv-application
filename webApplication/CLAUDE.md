@@ -17,6 +17,8 @@ src/
     sidebar/                # sidebar.component.tsx — Device Management / Content Management nav links
     dashboard-layout/       # dashboard-layout.component.tsx — sidebar + <Outlet/> wrapper for protected routes
     content-thumbnail/      # content-thumbnail.component.tsx — shared thumbnail+type+filename display (image/video preview, uses getContentDisplayName)
+    visitor-table/          # visitor-table.component.tsx — Analytics tab's Per-Visitor Watch Time table: server-side sort (watch time/visits/first seen), filters (gender, visits, age bucket, first-seen date range) and pagination via deviceService.getAnalyticsVisitors
+    select-field/           # select-field.component.tsx — labelled <select> used by the visitor table filters
     content-picker-modal/   # content-picker-modal.component.tsx — modal listing the content library for attaching existing content to a device
   services/                 # API + socket layer (named *.service.ts — maps to models/ in skill)
     auth.service.ts

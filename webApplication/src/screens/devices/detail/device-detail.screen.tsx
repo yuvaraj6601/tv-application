@@ -10,6 +10,7 @@ import { Toast } from '../../../components/common/toast/toast.component';
 import { ContentThumbnail } from '../../../components/common/content-thumbnail/content-thumbnail.component';
 import { ContentPickerModal } from '../../../components/common/content-picker-modal/content-picker-modal.component';
 import { DonutChart } from '../../../components/common/donut-chart/donut-chart.component';
+import { VisitorTable } from '../../../components/common/visitor-table/visitor-table.component';
 import { BarChart } from '../../../components/common/bar-chart/bar-chart.component';
 import { STRINGS } from '../../../constants/strings.constant';
 import {
@@ -1251,38 +1252,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
                   </span>
                   {STRINGS.devices.detail.analyticsPerVisitorTitle}
                 </h4>
-                {analyticsState.data.visitors.length === 0 ? (
-                  <p className="analytics-panel__empty">No visitors recorded yet.</p>
-                ) : (
-                  <div className="analytics-table-wrapper">
-                    <table className="analytics-table">
-                      <thead>
-                        <tr>
-                          <th>{STRINGS.devices.detail.analyticsVisitorIdColumn}</th>
-                          <th>{STRINGS.devices.detail.analyticsWatchTimeColumn}</th>
-                          <th>{STRINGS.devices.detail.analyticsVisitsColumn}</th>
-                          <th>{STRINGS.devices.detail.analyticsFirstSeenColumn}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analyticsState.data.visitors.map(visitor => (
-                          <tr key={visitor.visitorId}>
-                            <td>{visitor.visitorId}</td>
-                            <td>{formatWatchTime(visitor.watchTimeSeconds)}</td>
-                            <td>
-                              {visitor.visitCount > 1 ? (
-                                <span className="analytics-badge analytics-badge--returning">{visitor.visitCount}x</span>
-                              ) : (
-                                <span className="analytics-badge">{visitor.visitCount}x</span>
-                              )}
-                            </td>
-                            <td>{formatDateTime(visitor.firstSeenAt)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <VisitorTable deviceId={deviceId} />
               </div>
             </>
           ) : null}

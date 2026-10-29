@@ -72,6 +72,21 @@ export const STRINGS = {
       analyticsMale: 'Male',
       analyticsFemale: 'Female',
       analyticsUnknown: 'Unknown',
+      analyticsGenderColumn: 'Gender',
+      analyticsAgeColumn: 'Age',
+      analyticsFilterAllGenders: 'All genders',
+      analyticsFilterAllVisits: 'All visits',
+      analyticsFilterOneTime: 'One-time',
+      analyticsFilterReturning: 'Returning',
+      analyticsFilterAllAges: 'All ages',
+      analyticsFilterFrom: 'First seen from',
+      analyticsFilterTo: 'First seen to',
+      analyticsFilterReset: 'Reset filters',
+      analyticsVisitorsEmpty: 'No visitors match these filters.',
+      analyticsVisitorsLoading: 'Loading visitors...',
+      analyticsVisitorsErrorLoad: 'Failed to load visitors.',
     },
   },
 };
+
+export const VISITOR_AGE_BUCKETS = ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'];

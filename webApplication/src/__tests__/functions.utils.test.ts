@@ -6,6 +6,7 @@ import {
   filterSortAndPaginateContent,
   formatWatchTime,
   getContentDisplayName,
+  getNextVisitorSort,
   getOrientationLabel,
   isValidMacAddress,
   isValidPiId
@@ -248,5 +249,16 @@ describe('getOrientationLabel', () => {
 
   it('happy path — LANDSCAPE_FLIP', () => {
     expect(getOrientationLabel('LANDSCAPE_FLIP')).toBe('Landscape Flip');
+  });
+});
+
+describe('getNextVisitorSort', () => {
+  it('toggles the order when the active column is clicked again', () => {
+    expect(getNextVisitorSort({ sortBy: 'watchTime', order: 'desc' }, 'watchTime')).toEqual({ sortBy: 'watchTime', order: 'asc' });
+    expect(getNextVisitorSort({ sortBy: 'watchTime', order: 'asc' }, 'watchTime')).toEqual({ sortBy: 'watchTime', order: 'desc' });
+  });
+
+  it('switches to a different column starting at descending', () => {
+    expect(getNextVisitorSort({ sortBy: 'watchTime', order: 'asc' }, 'visits')).toEqual({ sortBy: 'visits', order: 'desc' });
   });
 });

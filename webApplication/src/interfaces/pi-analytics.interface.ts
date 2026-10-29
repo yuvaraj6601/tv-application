@@ -27,3 +27,36 @@ export interface DeviceAnalyticsModel {
   ageBuckets: PiAnalyticsAgeBucketModel[];
   visitors: PiAnalyticsVisitorModel[];
 }
+
+export type VisitorSortBy = 'watchTime' | 'visits' | 'firstSeen';
+export type VisitorSortOrder = 'asc' | 'desc';
+export type VisitorGenderFilter = 'male' | 'female' | 'unknown';
+export type VisitorVisitsFilter = 'oneTime' | 'returning';
+
+export interface VisitorTableQuery {
+  sortBy: VisitorSortBy;
+  order: VisitorSortOrder;
+  gender?: VisitorGenderFilter;
+  visits?: VisitorVisitsFilter;
+  ageBucket?: string;
+  from?: string;
+  to?: string;
+  page: number;
+  pageSize: number;
+}
+
+export interface PiAnalyticsVisitorRowModel {
+  visitorId: string;
+  watchTimeSeconds: number;
+  visitCount: number;
+  firstSeenAt: string;
+  gender: string | null;
+  age: number | null;
+}
+
+export interface PiAnalyticsVisitorPageModel {
+  items: PiAnalyticsVisitorRowModel[];
+  totalItems: number;
+  totalPages: number;
+  page: number;
+}

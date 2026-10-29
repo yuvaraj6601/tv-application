@@ -1,6 +1,6 @@
 import { dashboardAxios } from '../utils/axios.utils';
 import { DeviceSummary } from '../store/slices/devices.slice';
-import { DeviceAnalyticsModel } from '../interfaces/pi-analytics.interface';
+import { DeviceAnalyticsModel, PiAnalyticsVisitorPageModel, VisitorTableQuery } from '../interfaces/pi-analytics.interface';
 
 export type DeviceOrientation = 'PORTRAIT' | 'LANDSCAPE' | 'PORTRAIT_FLIP' | 'LANDSCAPE_FLIP';
 
@@ -55,6 +55,13 @@ export const deviceService = {
   },
   getAnalytics: async (deviceId: string): Promise<DeviceAnalyticsModel | null> => {
     const response = await dashboardAxios.get<ApiResponseModel<DeviceAnalyticsModel | null>>(`/api/v1/device/${deviceId}/analytics`);
+    return response.data.data;
+  },
+  getAnalyticsVisitors: async (deviceId: string, query: VisitorTableQuery): Promise<PiAnalyticsVisitorPageModel | null> => {
+    const response = await dashboardAxios.get<ApiResponseModel<PiAnalyticsVisitorPageModel | null>>(
+      `/api/v1/device/${deviceId}/analytics/visitors`,
+      { params: query }
+    );
     return response.data.data;
   },
   deleteDevice: async (deviceId: string): Promise<void> => {
