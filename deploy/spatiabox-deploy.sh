@@ -29,7 +29,7 @@ echo "Syncing frontend build to server..."
 rsync -avz --delete "$LOCAL_FRONTEND_DIR/dist/" "$SSH_HOST:$REMOTE_FRONTEND_DIR/"
 
 echo "Syncing backend source to server..."
-rsync -avz --delete --exclude 'node_modules' --exclude '.git' "$LOCAL_BACKEND_DIR/" "$SSH_HOST:$REMOTE_BACKEND_DIR/"
+rsync -avz --delete --exclude 'node_modules' --exclude '.git' --exclude '.env' --exclude 'uploads' "$LOCAL_BACKEND_DIR/" "$SSH_HOST:$REMOTE_BACKEND_DIR/"
 
 echo "Installing backend dependencies on server, building there and restarting PM2..."
 ssh "$SSH_HOST" bash -lc "set -e
