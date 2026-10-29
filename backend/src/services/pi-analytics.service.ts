@@ -1,9 +1,13 @@
+import { Prisma } from '.prisma/pi-analytics-client';
 import { prisma } from '../db';
 import { piAnalyticsPrisma } from '../db-pi-analytics';
 import {
   PiAnalyticsAgeBucket,
   PiAnalyticsResponse,
-  PiAnalyticsVisitor
+  PiAnalyticsVisitor,
+  PiAnalyticsVisitorPage,
+  PiAnalyticsVisitorQuery,
+  PiAnalyticsVisitorRow
 } from '../interfaces/pi-analytics.interface';
 
 const AGE_BUCKET_SIZE = 10;
@@ -33,7 +37,107 @@ const buildAgeBuckets = (ages: number[]): PiAnalyticsAgeBucket[] => {
     });
 };
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+const SORT_COLUMNS = {
+  watchTime: Prisma.raw('SUM(s.duration_seconds)'),
+  visits: Prisma.raw('COUNT(s.id)'),
+  firstSeen: Prisma.raw('v.first_seen_at')
+} as const;
+
+interface VisitorRawRow {
+  visitorId: string;
+  firstSeenAt: Date;
+  gender: string | null;
+  age: number | null;
+  watchTimeSeconds: bigint | number;
+  visitCount: bigint | number;
+}
+
+const buildAgeCondition = (ageBucket: string): Prisma.Sql => {
+  if (ageBucket.endsWith('+')) {
+    return Prisma.sql`v.age >= ${Number.parseInt(ageBucket, 10)}`;
+  }
+  const [start, end] = ageBucket.split('-').map(value => Number.parseInt(value, 10));
+  return Prisma.sql`v.age BETWEEN ${start} AND ${end}`;
+};
+
+const buildVisitorConditions = (piId: string, query: PiAnalyticsVisitorQuery): Prisma.Sql[] => {
+  const conditions: Prisma.Sql[] = [Prisma.sql`v.pi_id = ${piId}`];
+
+  if (query.gender === 'unknown') {
+    conditions.push(Prisma.sql`(v.gender IS NULL OR v.gender NOT IN ('male', 'female'))`);
+  } else if (query.gender) {
+    conditions.push(Prisma.sql`v.gender = ${query.gender}`);
+  }
+  if (query.ageBucket) {
+    conditions.push(buildAgeCondition(query.ageBucket));
+  }
+  if (query.from) {
+    conditions.push(Prisma.sql`v.first_seen_at >= ${query.from}`);
+  }
+  if (query.to) {
+    conditions.push(Prisma.sql`v.first_seen_at < ${new Date(query.to.getTime() + ONE_DAY_MS)}`);
+  }
+
+  return conditions;
+};
+
+const buildVisitorQuery = (piId: string, query: PiAnalyticsVisitorQuery): Prisma.Sql => {
+  const having =
+    query.visits === 'returning'
+      ? Prisma.sql`HAVING COUNT(s.id) > 1`
+      : query.visits === 'oneTime'
+        ? Prisma.sql`HAVING COUNT(s.id) = 1`
+        : Prisma.empty;
+
+  return Prisma.sql`
+    SELECT v.id AS visitorId, v.first_seen_at AS firstSeenAt, v.gender AS gender, v.age AS age,
+      CAST(SUM(s.duration_seconds) AS SIGNED) AS watchTimeSeconds, CAST(COUNT(s.id) AS SIGNED) AS visitCount
+    FROM visitors v
+    JOIN sessions s ON s.visitor_id = v.id AND s.pi_id = v.pi_id
+    WHERE ${Prisma.join(buildVisitorConditions(piId, query), ' AND ')}
+    GROUP BY v.id, v.first_seen_at, v.gender, v.age
+    ${having}`;
+};
+
 export const piAnalyticsService = {
+  getVisitors: async (deviceId: string, query: PiAnalyticsVisitorQuery): Promise<PiAnalyticsVisitorPage | null> => {
+    const device = await prisma.device.findUnique({
+      where: { id: deviceId },
+      select: { piId: true }
+    });
+
+    if (!device?.piId) {
+      return null;
+    }
+
+    const grouped = buildVisitorQuery(device.piId, query);
+    const [countRow] = await piAnalyticsPrisma.$queryRaw<{ total: bigint | number }[]>`
+      SELECT COUNT(*) AS total FROM (${grouped}) AS grouped_visitors`;
+
+    const totalItems = Number(countRow?.total ?? 0);
+    const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
+    const page = Math.min(query.page, totalPages);
+    const direction = query.order === 'asc' ? Prisma.raw('ASC') : Prisma.raw('DESC');
+
+    const rows = await piAnalyticsPrisma.$queryRaw<VisitorRawRow[]>`
+      ${grouped}
+      ORDER BY ${SORT_COLUMNS[query.sortBy]} ${direction}, v.id ASC
+      LIMIT ${query.pageSize} OFFSET ${(page - 1) * query.pageSize}`;
+
+    const items: PiAnalyticsVisitorRow[] = rows.map(row => ({
+      visitorId: row.visitorId,
+      watchTimeSeconds: Number(row.watchTimeSeconds),
+      visitCount: Number(row.visitCount),
+      firstSeenAt: row.firstSeenAt,
+      gender: row.gender,
+      age: row.age
+    }));
+
+    return { items, totalItems, totalPages, page };
+  },
+
   getAnalytics: async (deviceId: string): Promise<PiAnalyticsResponse | null> => {
     const device = await prisma.device.findUnique({
       where: { id: deviceId },

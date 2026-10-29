@@ -35,3 +35,15 @@ export const devicePiIdUpdateValidation = Joi.object({
 export const deviceNameUpdateValidation = Joi.object({
   deviceName: Joi.string().min(2).max(120).required()
 });
+
+export const visitorTableQueryValidation = Joi.object({
+  sortBy: Joi.string().valid('watchTime', 'visits', 'firstSeen').default('watchTime'),
+  order: Joi.string().valid('asc', 'desc').default('desc'),
+  gender: Joi.string().valid('male', 'female', 'unknown').optional(),
+  visits: Joi.string().valid('oneTime', 'returning').optional(),
+  ageBucket: Joi.string().pattern(/^(\d{1,3}-\d{1,3}|\d{1,3}\+)$/).optional(),
+  from: Joi.date().iso().optional(),
+  to: Joi.date().iso().optional(),
+  page: Joi.number().integer().min(1).default(1),
+  pageSize: Joi.number().integer().min(1).max(100).default(10)
+});

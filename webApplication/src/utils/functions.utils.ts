@@ -1,3 +1,5 @@
+import { VisitorSortBy, VisitorSortOrder } from '../interfaces/pi-analytics.interface';
+
 const MAC_ADDRESS_PATTERN = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/;
 
 // Matches the Python server's local-dev PI_ID default (see pythonServer/.env.example) — lets a
@@ -199,4 +201,15 @@ export const formatWatchTime = (totalSeconds: number): string => {
   }
 
   return `${seconds}s`;
+};
+
+export const getNextVisitorSort = (
+  current: { sortBy: VisitorSortBy; order: VisitorSortOrder },
+  clickedColumn: VisitorSortBy
+): { sortBy: VisitorSortBy; order: VisitorSortOrder } => {
+  if (current.sortBy === clickedColumn) {
+    return { sortBy: clickedColumn, order: current.order === 'desc' ? 'asc' : 'desc' };
+  }
+
+  return { sortBy: clickedColumn, order: 'desc' };
 };

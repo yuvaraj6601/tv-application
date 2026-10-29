@@ -105,4 +105,12 @@ deviceRoute.get(
   requireAdminDeviceAccess(),
   deviceController.getAnalytics
 );
+deviceRoute.get(
+  '/:deviceId/analytics/visitors',
+  authMiddleware,
+  requireRole(['ADMIN']),
+  validationMiddleware(deviceParamValidation, 'params'),
+  requireAdminDeviceAccess(),
+  deviceController.getVisitorTable
+);
 deviceRoute.use('/:deviceId/content', contentRoute);

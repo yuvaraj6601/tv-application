@@ -5,6 +5,8 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { deviceService } from '../services/device.service';
 import { contentService } from '../services/content.service';
 import { piAnalyticsService } from '../services/pi-analytics.service';
+import { visitorTableQueryValidation } from '../validations/device.validation';
+import { PiAnalyticsVisitorQuery } from '../interfaces/pi-analytics.interface';
 import { socketGateway } from '../socket/socket.gateway';
 
 const getParamValue = (value: string | string[] | undefined): string => {
@@ -228,6 +230,29 @@ export const deviceController = {
     res.status(200).json({
       status: true,
       data: analytics
+    });
+  },
+  getVisitorTable: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    if (!req.auth) {
+      res.status(401).json({ status: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const validation = visitorTableQueryValidation.validate(req.query, { abortEarly: false, stripUnknown: true });
+    if (validation.error) {
+      res.status(400).json({
+        status: false,
+        message: 'Validation failed',
+        errors: validation.error.details.map(detail => detail.message)
+      });
+      return;
+    }
+
+    const page = await piAnalyticsService.getVisitors(getParamValue(req.params.deviceId), validation.value as PiAnalyticsVisitorQuery);
+
+    res.status(200).json({
+      status: true,
+      data: page
     });
   }
 };
