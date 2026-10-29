@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     rotation_check_interval_seconds: int = 3600
     sync_interval_seconds: int = 3600
     face_refresh_interval_seconds: int = 60
+    db_connect_timeout_seconds: int = 5
+    db_query_timeout_seconds: int = 30
 
 
 settings = Settings()

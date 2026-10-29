@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +14,7 @@ from src.db.models import Base
 from src.recognition.face_matcher import KnownFace
 from src.recognition.known_faces_loader import load_known_faces, refresh_known_faces
 from src.recognition.user_registry import UserRegistry
+from src.storage.db_syncer import sync_pending
 
 PI_ID = "b8:27:eb:11:11:11"
 FIRST_SEEN_AT = datetime(2026, 8, 5, 9, 0, 0)
@@ -155,3 +157,59 @@ async def test_refresh_known_faces_returns_false_and_leaves_registry_untouched_w
     )
     assert visitor_id == "v-1"
     assert record is None
+
+
+# --- hanging DB (network up, no internet): calls must give up quickly ------
+
+
+class _HangingSession:
+    async def __aenter__(self) -> "_HangingSession":
+        await asyncio.Event().wait()
+        return self
+
+    async def __aexit__(self, *exc_info: object) -> None:
+        return None
+
+
+def _hanging_factory() -> _HangingSession:
+    return _HangingSession()
+
+
+async def test_check_db_connection_returns_false_when_db_hangs() -> None:
+    result = await asyncio.wait_for(check_db_connection(_hanging_factory, timeout_seconds=0.2), 2)  # type: ignore[arg-type]
+
+    assert result is False
+
+
+async def test_load_known_faces_uses_cache_when_db_hangs(tmp_path: Path) -> None:
+    cache_path = tmp_path / "knownFaces.json"
+    cache_path.write_text(json.dumps([{"visitor_id": "v-cached", "embedding": [0.0, 1.0, 0.0]}]), encoding="utf-8")
+
+    faces, from_db = await asyncio.wait_for(
+        load_known_faces(_hanging_factory, PI_ID, cache_path, timeout_seconds=0.2),  # type: ignore[arg-type]
+        2,
+    )
+
+    assert from_db is False
+    assert [f.visitor_id for f in faces] == ["v-cached"]
+
+
+async def test_refresh_known_faces_returns_false_when_db_hangs(tmp_path: Path) -> None:
+    refreshed = await asyncio.wait_for(
+        refresh_known_faces(UserRegistry(), _hanging_factory, PI_ID, tmp_path / "k.json", timeout_seconds=0.2),  # type: ignore[arg-type]
+        2,
+    )
+
+    assert refreshed is False
+
+
+async def test_sync_pending_skips_quickly_when_db_hangs(tmp_path: Path) -> None:
+    (tmp_path / "syncData" / "2026-10-07").mkdir(parents=True)
+
+    result = await asyncio.wait_for(
+        sync_pending(_hanging_factory, tmp_path, PI_ID, timeout_seconds=0.2),  # type: ignore[arg-type]
+        2,
+    )
+
+    assert result == []
+    assert (tmp_path / "syncData" / "2026-10-07").exists()

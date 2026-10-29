@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import shutil
@@ -7,6 +8,7 @@ from typing import AsyncContextManager, Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config.settings import settings
 from src.db import repository
 from src.session.session_tracker import FinalizedSession
 from src.storage.daily_writer import NewVisitorRecord
@@ -47,15 +49,24 @@ async def _sync_day(session: AsyncSession, pi_id: str, day_dir: Path) -> int:
     return rows_synced
 
 
-async def sync_pending(session_factory: SessionFactory, data_dir: str | Path, pi_id: str) -> list[Path]:
+async def _probe(session_factory: SessionFactory) -> None:
+    async with session_factory() as probe_session:
+        await probe_session.connection()
+
+
+async def sync_pending(
+    session_factory: SessionFactory,
+    data_dir: str | Path,
+    pi_id: str,
+    timeout_seconds: float = settings.db_connect_timeout_seconds,
+) -> list[Path]:
     sync_data_dir = Path(data_dir) / "syncData"
     processed_data_dir = Path(data_dir) / "processedData"
 
     try:
-        async with session_factory() as probe_session:
-            await probe_session.connection()
+        await asyncio.wait_for(_probe(session_factory), timeout_seconds)
     except Exception as err:
-        logger.info("pythonServer DB unreachable, skipping sync: %s", err)
+        logger.info("pythonServer DB unreachable, skipping sync: %r", err)
         return []
 
     if not sync_data_dir.exists():
