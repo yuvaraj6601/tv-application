@@ -3,6 +3,19 @@ import { prisma } from '../db';
 import { socketGateway } from '../socket/socket.gateway';
 import { storageService } from './storage.service';
 
+const DEFAULT_IMAGE_DURATION_SECONDS = 10;
+const DEFAULT_WEBPAGE_DURATION_SECONDS = 60;
+
+const resolveDefaultDuration = (type: ContentType, duration?: number): number | undefined => {
+  if (duration) {
+    return duration;
+  }
+  if (type === 'WEBPAGE') {
+    return DEFAULT_WEBPAGE_DURATION_SECONDS;
+  }
+  return type === 'IMAGE' ? DEFAULT_IMAGE_DURATION_SECONDS : undefined;
+};
+
 interface CreateLibraryContentPayload {
   userId: string;
   type: ContentType;
@@ -73,7 +86,7 @@ export const contentService = {
         localPath: storageKey,
         fileName,
         fileMimeType,
-        duration: payload.duration
+        duration: resolveDefaultDuration(payload.type, payload.duration)
       }
     });
   },

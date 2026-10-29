@@ -36,7 +36,7 @@ export const syncService = {
       fileName: item.fileName || undefined,
       fileMimeType: item.fileMimeType || undefined,
       fileData: item.fileData || undefined,
-      duration: item.duration || 10,
+      duration: item.duration || (item.type === 'WEBPAGE' ? 60 : 10),
       order: item.sortOrder
     }));
 

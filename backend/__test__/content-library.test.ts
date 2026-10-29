@@ -115,6 +115,79 @@ describe('Content Library', () => {
       expect(res.body.data.type).toBe('WEBPAGE');
     });
 
+    it('default duration — WEBPAGE with no duration is stored as 60 seconds', async () => {
+      const { token } = await createTestUser('create-default-webpage');
+
+      const res = await request(app)
+        .post('/api/v1/content')
+        .set('Authorization', `Bearer ${token}`)
+        .field('type', 'WEBPAGE')
+        .field('url', 'https://example.com');
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.duration).toBe(60);
+    });
+
+    it('default duration — IMAGE with no duration is stored as 10 seconds', async () => {
+      const { token } = await createTestUser('create-default-image');
+
+      const res = await request(app)
+        .post('/api/v1/content')
+        .set('Authorization', `Bearer ${token}`)
+        .field('type', 'IMAGE')
+        .attach('file', Buffer.from('fake-image'), { filename: 'a.png', contentType: 'image/png' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.duration).toBe(10);
+    });
+
+    it('explicit duration — a provided duration is kept as-is', async () => {
+      const { token } = await createTestUser('create-explicit-duration');
+
+      const res = await request(app)
+        .post('/api/v1/content')
+        .set('Authorization', `Bearer ${token}`)
+        .field('type', 'WEBPAGE')
+        .field('url', 'https://example.com')
+        .field('duration', '30');
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.duration).toBe(30);
+    });
+
+    it('normalisation — a bare domain is saved as an https URL', async () => {
+      const { token } = await createTestUser('create-normalise-url');
+
+      const res = await request(app)
+        .post('/api/v1/content')
+        .set('Authorization', `Bearer ${token}`)
+        .field('type', 'WEBPAGE')
+        .field('url', 'example.com');
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.url).toBe('https://example.com/');
+    });
+
+    it('validation failure — 400 when WEBPAGE has no url', async () => {
+      const { token } = await createTestUser('create-webpage-no-url');
+
+      const res = await request(app).post('/api/v1/content').set('Authorization', `Bearer ${token}`).field('type', 'WEBPAGE');
+
+      expect(res.status).toBe(400);
+    });
+
+    it('validation failure — 400 when WEBPAGE url uses a non-http protocol', async () => {
+      const { token } = await createTestUser('create-webpage-bad-protocol');
+
+      const res = await request(app)
+        .post('/api/v1/content')
+        .set('Authorization', `Bearer ${token}`)
+        .field('type', 'WEBPAGE')
+        .field('url', 'javascript:alert(1)');
+
+      expect(res.status).toBe(400);
+    });
+
     it('validation failure — 400 when type is missing', async () => {
       const { token } = await createTestUser('create-invalid');
 

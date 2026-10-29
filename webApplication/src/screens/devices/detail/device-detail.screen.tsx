@@ -8,6 +8,7 @@ import { MediaViewerModal } from '../../../components/common/media-viewer-modal/
 import { Pagination } from '../../../components/common/pagination/pagination.component';
 import { Toast } from '../../../components/common/toast/toast.component';
 import { ContentThumbnail } from '../../../components/common/content-thumbnail/content-thumbnail.component';
+import { AddWebpageModal } from '../../../components/common/add-webpage-modal/add-webpage-modal.component';
 import { ContentPickerModal } from '../../../components/common/content-picker-modal/content-picker-modal.component';
 import { DonutChart } from '../../../components/common/donut-chart/donut-chart.component';
 import { VisitorTable } from '../../../components/common/visitor-table/visitor-table.component';
@@ -17,6 +18,7 @@ import {
   DEFAULT_DURATION_SECONDS,
   clampDuration,
   formatWatchTime,
+  getContentDisplayName,
   getOrientationLabel,
   isValidDeviceName,
   isValidPiId
@@ -187,6 +189,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
   const playlistScrollRef = useRef<HTMLDivElement | null>(null);
   const libraryScrollRef = useRef<HTMLDivElement | null>(null);
   const [isAddMediaOpen, setIsAddMediaOpen] = useState<boolean>(false);
+  const [webpageState, setWebpageState] = useState({ isOpen: false, isSaving: false, error: '' });
   const [isContentPickerOpen, setIsContentPickerOpen] = useState<boolean>(false);
   const [analyticsState, setAnalyticsState] = useState<{
     data: DeviceAnalyticsModel | null;
@@ -447,6 +450,30 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
 
     setIsAddMediaOpen(false);
     setUploadState({ status: 'IDLE', progress: 0, fileName: '', error: '' });
+  };
+
+  const handlePreviewItem = (item: { type: DashboardContentType; url: string; fileName: string | null }): void => {
+    if (item.type === 'WEBPAGE') {
+      window.open(item.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    setViewerItem({ type: item.type, url: item.url, fileName: item.fileName });
+  };
+
+  const handleAddWebpage = async (payload: { url: string; duration: number }): Promise<void> => {
+    if (!deviceId) {
+      return;
+    }
+
+    setWebpageState(prev => ({ ...prev, isSaving: true, error: '' }));
+    try {
+      await contentService.createWebpage(deviceId, payload);
+      setWebpageState({ isOpen: false, isSaving: false, error: '' });
+      setToastState({ message: 'Webpage added successfully.', type: 'success' });
+      await loadItems();
+    } catch (error: unknown) {
+      setWebpageState(prev => ({ ...prev, isSaving: false, error: getRequestErrorMessage(error, 'Failed to add webpage.') }));
+    }
   };
 
   const handleUploadFiles = async (fileList: FileList | null | undefined): Promise<void> => {
@@ -882,7 +909,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
                                   type="button"
                                   className="playlist-table__thumb-button"
                                   aria-label={`View ${item.fileName || 'media'}`}
-                                  onClick={() => setViewerItem({ type: item.type, url: item.url, fileName: item.fileName })}
+                                  onClick={() => handlePreviewItem(item)}
                                 >
                                   <ContentThumbnail type={item.type} url={item.url} fileName={item.fileName} hideInfo />
                                 </button>
@@ -890,7 +917,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
                               <td>
                                 <span className="playlist-table__type">{item.type}</span>
                               </td>
-                              <td>{item.fileName || '-'}</td>
+                              <td>{getContentDisplayName(item.fileName, item.url, item.type)}</td>
                               <td>
                                 {item.type === 'VIDEO' ? (
                                   '-'
@@ -976,6 +1003,14 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
             >
               <div className="playlist-panel__header">
                 <h3>Content Library ({availableLibraryItems.length})</h3>
+                <div className="playlist-panel__actions">
+                <button
+                  type="button"
+                  className="playlist-panel__add-button playlist-panel__add-button--secondary"
+                  onClick={() => setWebpageState({ isOpen: true, isSaving: false, error: '' })}
+                >
+                  + Add Webpage
+                </button>
                 <button
                   type="button"
                   className="playlist-panel__add-button"
@@ -991,6 +1026,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
                 >
                   + Add Media
                 </button>
+                </div>
               </div>
 
               {
@@ -1039,7 +1075,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
                                   type="button"
                                   className="playlist-table__thumb-button"
                                   aria-label={`View ${item.fileName || 'media'}`}
-                                  onClick={() => setViewerItem({ type: item.type, url: item.url, fileName: item.fileName })}
+                                  onClick={() => handlePreviewItem(item)}
                                 >
                                   <ContentThumbnail type={item.type} url={item.url} fileName={item.fileName} hideInfo />
                                 </button>
@@ -1047,7 +1083,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
                             <td>
                               <span className="playlist-table__type">{item.type}</span>
                             </td>
-                            <td>{item.fileName || '-'}</td>
+                            <td>{getContentDisplayName(item.fileName, item.url, item.type)}</td>
                             <td>{item.type === 'VIDEO' ? '-' : (item.duration ?? 10)}</td>
                             <td>
                               <button
@@ -1390,6 +1426,16 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
         </section>
       ) : null}
 
+      <AddWebpageModal
+        isOpen={webpageState.isOpen}
+        isSaving={webpageState.isSaving}
+        error={webpageState.error}
+        onClose={() => setWebpageState(prev => ({ ...prev, isOpen: false }))}
+        onSubmit={payload => {
+          handleAddWebpage(payload).catch(() => undefined);
+        }}
+      />
+
       <Modal isOpen={isAddMediaOpen} title="Add Media" onClose={handleCloseAddMedia}>
         <div className="upload-modal">
           {uploadState.status === 'UPLOADING' ? (
@@ -1442,7 +1488,7 @@ export const DeviceDetailScreen = (): React.JSX.Element => {
         <MediaViewerModal isOpen type={viewerItem.type} url={viewerItem.url} fileName={viewerItem.fileName} onClose={() => setViewerItem(null)} />
       ) : null}
 
-      <Modal isOpen={moreMenuItem !== null} title={moreMenuItem?.fileName || 'Content'} onClose={() => setMoreMenuItem(null)}>
+      <Modal isOpen={moreMenuItem !== null} title={moreMenuItem ? getContentDisplayName(moreMenuItem.fileName, moreMenuItem.url, moreMenuItem.type) : 'Content'} onClose={() => setMoreMenuItem(null)}>
         <button
           type="button"
           className="playlist-table__menu-action"

@@ -2,7 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ContentLibraryItemModel, DashboardContentType, contentService } from '../../../services/content.service';
 import { ContentThumbnail } from '../../../components/common/content-thumbnail/content-thumbnail.component';
 import { Toast } from '../../../components/common/toast/toast.component';
-import { ContentSortBy, ContentTypeFilterValue, filterSortAndPaginateContent, getContentDisplayName } from '../../../utils/functions.utils';
+import {
+  ContentSortBy,   ContentTypeFilterValue,
+  DEFAULT_DURATION_SECONDS,
+  DEFAULT_WEBPAGE_DURATION_SECONDS,
+  clampDuration,
+  filterSortAndPaginateContent,
+  getContentDisplayName
+} from '../../../utils/functions.utils';
 import './content.screen.scss';
 
 const PAGE_SIZE = 10;
@@ -20,7 +27,11 @@ export const ContentScreen = (): React.JSX.Element => {
     isLoading: false,
     error: ''
   });
-  const [uploadType, setUploadType] = useState<'IMAGE' | 'VIDEO'>('IMAGE');
+  const [uploadType, setUploadType] = useState<'IMAGE' | 'VIDEO' | 'WEBPAGE'>('IMAGE');
+  const [uploadForm, setUploadForm] = useState<{ websiteUrl: string; duration: string }>({
+    websiteUrl: '',
+    duration: String(DEFAULT_DURATION_SECONDS)
+  });
   const [typeFilter, setTypeFilter] = useState<ContentTypeFilterValue>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortBy, setSortBy] = useState<ContentSortBy>('NEWEST');
@@ -52,12 +63,27 @@ export const ContentScreen = (): React.JSX.Element => {
   };
 
   const handleConfirmUpload = async (): Promise<void> => {
-    if (!selectedFile) {
-      return;
-    }
-
     try {
-      await contentService.uploadToLibrary({ type: uploadType, file: selectedFile });
+      if (uploadType === 'WEBPAGE') {
+        const websiteUrl = uploadForm.websiteUrl.trim();
+        if (!websiteUrl) {
+          return;
+        }
+        await contentService.createWebpageInLibrary({
+          url: websiteUrl,
+          duration: clampDuration(uploadForm.duration, DEFAULT_WEBPAGE_DURATION_SECONDS)
+        });
+        setUploadForm(prev => ({ ...prev, websiteUrl: '' }));
+      } else {
+        if (!selectedFile) {
+          return;
+        }
+        await contentService.uploadToLibrary({
+          type: uploadType,
+          file: selectedFile,
+          duration: uploadType === 'IMAGE' ? clampDuration(uploadForm.duration) : undefined
+        });
+      }
       setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -103,13 +129,18 @@ export const ContentScreen = (): React.JSX.Element => {
         <div className="content-screen__heading">
           <p className="content-screen__eyebrow">Digital Signage Control</p>
           <h1>Content Management</h1>
-          <p>All images and videos uploaded across your devices. Deleting an item removes it from every device it&apos;s used on.</p>
+          <p>All images, videos and websites added across your devices. Deleting an item removes it from every device it&apos;s used on.</p>
         </div>
         <div className="content-screen__upload">
           <select
             value={uploadType}
             onChange={event => {
-              setUploadType(event.target.value as 'IMAGE' | 'VIDEO');
+              const nextType = event.target.value as 'IMAGE' | 'VIDEO' | 'WEBPAGE';
+              setUploadType(nextType);
+              setUploadForm({
+                websiteUrl: '',
+                duration: String(nextType === 'WEBPAGE' ? DEFAULT_WEBPAGE_DURATION_SECONDS : DEFAULT_DURATION_SECONDS)
+              });
               setSelectedFile(null);
               if (fileInputRef.current) {
                 fileInputRef.current.value = '';
@@ -118,19 +149,44 @@ export const ContentScreen = (): React.JSX.Element => {
           >
             <option value="IMAGE">IMAGE</option>
             <option value="VIDEO">VIDEO</option>
+            <option value="WEBPAGE">WEBSITE</option>
           </select>
-          <button type="button" className="content-screen__file-picker" onClick={() => fileInputRef.current?.click()}>
-            Choose file
-            <span>{selectedFile ? selectedFile.name : 'No file chosen'}</span>
-          </button>
+          {uploadType === 'WEBPAGE' ? (
+            <input
+              type="url"
+              className="content-screen__url-input"
+              placeholder="https://example.com"
+              aria-label="Website URL"
+              value={uploadForm.websiteUrl}
+              onChange={event => setUploadForm(prev => ({ ...prev, websiteUrl: event.target.value }))}
+            />
+          ) : (
+            <button type="button" className="content-screen__file-picker" onClick={() => fileInputRef.current?.click()}>
+              Choose file
+              <span>{selectedFile ? selectedFile.name : 'No file chosen'}</span>
+            </button>
+          )}
+          {uploadType === 'VIDEO' ? null : (
+            <label className="content-screen__duration">
+              <input
+                type="number"
+                min={1}
+                max={9999}
+                aria-label="Duration in seconds"
+                value={uploadForm.duration}
+                onChange={event => setUploadForm(prev => ({ ...prev, duration: event.target.value }))}
+              />
+              sec
+            </label>
+          )}
           <input
             ref={fileInputRef}
             type="file"
             className="content-screen__file-input"
-            accept={uploadType === 'IMAGE' ? 'image/*' : 'video/*'}
+            accept={uploadType === 'VIDEO' ? 'video/*' : 'image/*'}
             onChange={handleSelectFile}
           />
-          <button type="button" className="content-screen__upload-button" disabled={!selectedFile} onClick={handleConfirmUpload}>
+          <button type="button" className="content-screen__upload-button" disabled={uploadType === 'WEBPAGE' ? !uploadForm.websiteUrl.trim() : !selectedFile} onClick={handleConfirmUpload}>
             + Upload
           </button>
         </div>
@@ -138,14 +194,14 @@ export const ContentScreen = (): React.JSX.Element => {
 
       <div className="content-screen__toolbar">
         <div className="content-screen__filters">
-          {(['ALL', 'IMAGE', 'VIDEO'] as ContentTypeFilterValue[]).map(filter => (
+          {(['ALL', 'IMAGE', 'VIDEO', 'WEBPAGE'] as ContentTypeFilterValue[]).map(filter => (
             <button
               type="button"
               key={filter}
               className={`content-screen__filter${typeFilter === filter ? ' content-screen__filter--active' : ''}`}
               onClick={() => setTypeFilter(filter)}
             >
-              {filter === 'ALL' ? 'All' : filter === 'IMAGE' ? 'Images' : 'Videos'} ({filterCounts[filter]})
+              {filter === 'ALL' ? 'All' : filter === 'IMAGE' ? 'Images' : filter === 'VIDEO' ? 'Videos' : 'Websites'} ({filterCounts[filter]})
             </button>
           ))}
         </div>
@@ -166,7 +222,7 @@ export const ContentScreen = (): React.JSX.Element => {
       {state.error ? <p className="content-screen__error">{state.error}</p> : null}
       {state.isLoading ? <p className="content-screen__loading">Loading content...</p> : null}
       {!state.isLoading && !state.error && state.items.length === 0 ? (
-        <p className="content-screen__empty">No content uploaded yet. Upload an image or video to get started.</p>
+        <p className="content-screen__empty">No content uploaded yet. Upload an image or video, or add a website, to get started.</p>
       ) : null}
       {!state.isLoading && !state.error && state.items.length > 0 && paginatedResult.totalItems === 0 ? (
         <p className="content-screen__empty">No content matches this filter.</p>
@@ -181,6 +237,7 @@ export const ContentScreen = (): React.JSX.Element => {
                   <th>Thumbnail</th>
                   <th>Type</th>
                   <th>File Name</th>
+                  <th>Duration</th>
                   <th>Uploaded</th>
                   <th>Actions</th>
                 </tr>
@@ -199,6 +256,7 @@ export const ContentScreen = (): React.JSX.Element => {
                         {getContentDisplayName(item.fileName, item.url, item.type)}
                       </span>
                     </td>
+                    <td>{item.type === 'VIDEO' ? '-' : `${item.duration ?? (item.type === 'WEBPAGE' ? DEFAULT_WEBPAGE_DURATION_SECONDS : DEFAULT_DURATION_SECONDS)}s`}</td>
                     <td>
                       <span className="content-table__uploaded">{formatUploadedAt(item.createdAt)}</span>
                     </td>

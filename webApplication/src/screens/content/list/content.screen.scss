@@ -86,6 +86,36 @@
     }
   }
 
+  &__url-input {
+    height: 40px;
+    width: 240px;
+    max-width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 13px;
+    background: #ffffff;
+  }
+
+  &__duration {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #475467;
+
+    input {
+      height: 40px;
+      width: 70px;
+      box-sizing: border-box;
+      border: 1px solid #d0d5dd;
+      border-radius: 10px;
+      padding: 0 8px;
+      font-size: 13px;
+    }
+  }
+
   &__file-input {
     position: absolute;
     width: 1px;

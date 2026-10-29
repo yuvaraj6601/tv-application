@@ -510,6 +510,18 @@
   cursor: pointer;
 }
 
+.playlist-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.playlist-panel__add-button--secondary {
+  background: #ffffff;
+  color: #0d6efd;
+  border: 1px solid #0d6efd;
+}
+
 .playlist-table-wrapper {
   grid-column: 1 / -1;
   background: #ffffff;
