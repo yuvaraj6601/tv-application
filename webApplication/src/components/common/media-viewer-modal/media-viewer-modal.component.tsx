@@ -26,11 +26,6 @@ export const MediaViewerModal = ({ isOpen, type, url, fileName, onClose }: Media
       <div className="media-viewer">
         {type === 'IMAGE' ? <img src={resolvedUrl} alt={displayName} /> : null}
         {type === 'VIDEO' ? <video src={resolvedUrl} controls autoPlay playsInline /> : null}
-        {type === 'WEBPAGE' ? (
-          <a href={url} target="_blank" rel="noreferrer">
-            {url}
-          </a>
-        ) : null}
       </div>
     </Modal>
   );

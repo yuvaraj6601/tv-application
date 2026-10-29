@@ -166,8 +166,7 @@ export const PlayerScreen = (): React.JSX.Element => {
       );
     }
 
-    const webpageUri = currentItem.localPath ? `file://${currentItem.localPath}` : currentItem.url;
-    return <WebView key={mediaKey} source={{ uri: webpageUri }} style={sizedMediaStyle} javaScriptEnabled domStorageEnabled />;
+    return <WebView key={mediaKey} source={{ uri: currentItem.url }} style={sizedMediaStyle} javaScriptEnabled domStorageEnabled />;
   };
 
   return <TvRotatedView>{rotatedSize => renderMedia(rotatedSize)}</TvRotatedView>;

@@ -79,6 +79,13 @@ export const contentService = {
     const response = await dashboardAxios.get<ApiResponseModel<ContentLibraryItemModel[]>>('/api/v1/content');
     return response.data.data;
   },
+  createWebpageInLibrary: async (payload: { url: string; duration: number }): Promise<void> => {
+    const body = new FormData();
+    body.append('type', 'WEBPAGE');
+    body.append('url', payload.url);
+    body.append('duration', String(payload.duration));
+    await dashboardAxios.post('/api/v1/content', body);
+  },
   uploadToLibrary: async (payload: { type: 'IMAGE' | 'VIDEO'; file: File; duration?: number }): Promise<void> => {
     const body = new FormData();
     body.append('type', payload.type);

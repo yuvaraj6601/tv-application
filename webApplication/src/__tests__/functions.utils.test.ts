@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   FilterableContentItem,
+  clampDuration,
   FilterableDevice,
   filterAndSortDevices,
   filterSortAndPaginateContent,
@@ -260,5 +261,23 @@ describe('getNextVisitorSort', () => {
 
   it('switches to a different column starting at descending', () => {
     expect(getNextVisitorSort({ sortBy: 'watchTime', order: 'asc' }, 'visits')).toEqual({ sortBy: 'visits', order: 'desc' });
+  });
+});
+
+describe('clampDuration default', () => {
+  it('default — an empty or invalid value falls back to 10 seconds (image default)', () => {
+    expect(clampDuration('')).toBe(10);
+    expect(clampDuration('abc')).toBe(10);
+  });
+
+  it('default — a webpage falls back to 60 seconds', () => {
+    expect(clampDuration('', 60)).toBe(60);
+    expect(clampDuration('abc', 60)).toBe(60);
+  });
+
+  it('boundary — values are clamped to 1..9999 and floored', () => {
+    expect(clampDuration(0.5 + 1)).toBe(1);
+    expect(clampDuration(100000)).toBe(9999);
+    expect(clampDuration(-5)).toBe(1);
   });
 });

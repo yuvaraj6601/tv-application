@@ -54,23 +54,8 @@ export const fileCacheUtils = {
 
     for (const item of items) {
       if (item.type === 'WEBPAGE') {
-        const webpageFileName = `${item.id}-${item.order}.html`;
-        const webpageDestinationPath = `${stagingPath}/${webpageFileName}`;
-
-        try {
-          const webpageResponse = await fetch(item.url);
-          const webpageHtml = await webpageResponse.text();
-          await RNFS.writeFile(webpageDestinationPath, webpageHtml, 'utf8');
-
-          nextItems.push({
-            ...item,
-            localPath: `${activePath}/${webpageFileName}`
-          });
-        } catch (_error) {
-          // Keep fallback remote URL for cases where local webpage caching fails.
-          nextItems.push(item);
-        }
-
+        // Webpages are rendered from their live URL, so there is nothing to cache.
+        nextItems.push(item);
         continue;
       }
 
