@@ -3,20 +3,31 @@
 The main activity declares `MAIN` + `HOME` + `DEFAULT`, allowing Android to use
 DigitalSignageTV as the TV's home screen. Selecting it as the default Home app is
 a per-device setup step; installing the APK alone does not change that setting.
-The existing boot receiver is a fallback, not a replacement for selecting Home.
+The boot receiver provides a separate opt-in mode that keeps the current Home app.
 
 ## In-app setup
 
-When the Android app starts and is not the effective default Home app, it asks
-"Set as a launcher?". Choose **Yes** and approve DigitalSignageTV in Android's
-system dialog. Android 10 and later use the Home role request when available;
-other devices fall back to Home settings, then default-app settings.
+The startup popup offers **Set as launcher**, **Open on boot**, and **Cancel**.
+Set as launcher opens Android's Home role request on Android 10+ when available,
+falling back to Home settings and default-app settings.
+
+Open on boot keeps the current launcher. On Android 10+, it explains and requests
+the Display over other apps permission. After returning from settings, the app
+checks the permission and saves the user's boot opt-in only if it was granted.
+If permission is already available (or Android is older than 10), it saves the
+opt-in immediately. Cancel continues without enabling boot startup.
+
+The receiver runs after BOOT_COMPLETED, when credential storage is available,
+and requires both saved opt-in and permission. Permission alone does not opt in.
+It requests priority 999 to reduce boot queue delay on supported Android versions.
+Firmware can still delay or block launch; standby wake is not a full boot.
 
 On returning, the app checks which activity Android actually resolves for Home
 rather than trusting the dialog result. If setup was cancelled or did not take
 effect, it offers settings and explains that manufacturer restrictions may need
 administrator setup. **Later** continues to the signage app. The prompt appears
-once per activity session and is skipped when the app is already the default.
+once per activity session and is skipped when the app is already the default or
+Open on boot is enabled with its required permission.
 
 An ordinary installed APK cannot silently select itself, disable another launcher,
 or guarantee automatic launcher setup on every Android TV. The ADB steps below
@@ -60,9 +71,8 @@ adb -s 192.168.1.4:5555 reboot
 ## Restore the original home screen
 
 The original Home component on the MiTV-AXSO2 at `192.168.1.4:5555` was
-`com.google.android.tvlauncher/.MainActivity`. It remains installed, but is disabled
-for user 0 to allow the signage launcher to take precedence. Restore it before
-uninstalling the signage app:
+`com.google.android.tvlauncher/.MainActivity`. If you disabled it for launcher
+mode, restore it before uninstalling the signage app:
 
 ```sh
 adb -s 192.168.1.4:5555 shell pm enable --user 0 com.google.android.tvlauncher

@@ -1,6 +1,15 @@
 <resources>
-    <string name="launcher_prompt_title">Set as a launcher?</string>
-    <string name="launcher_prompt_message">Use DigitalSignageTV as this TV’s Home app so it opens when the TV starts. Select Yes, then approve DigitalSignageTV on the Android screen. The Home button will also open this app.</string>
+    <string name="launcher_overridden_title">TV is overriding your launcher choice</string>
+    <string name="launcher_overridden_message">Android has already selected DigitalSignageTV as the Home app, but this TV still opens its built-in launcher. Selecting it again in Settings will not resolve this restriction.\n\nChoose Open on boot to start this app after a restart while keeping the TV’s Home screen. Replacing the built-in launcher on this TV requires administrator setup.</string>
+    <string name="launcher_prompt_title">Choose how the TV app starts</string>
+    <string name="launcher_prompt_message">Set as launcher to use DigitalSignageTV as your Home screen, or choose Open on boot to start it after a restart while keeping your current Home screen.</string>
+    <string name="startup_set_launcher">Set as launcher</string>
+    <string name="startup_open_on_boot">Open on boot</string>
+    <string name="startup_cancel">Cancel</string>
+    <string name="startup_boot_enabled">Open on boot enabled. Your Home launcher is unchanged.</string>
+    <string name="startup_permission_message">Android requires “Display over other apps” to open DigitalSignageTV from the background after boot. On the next screen, allow this permission for DigitalSignageTV, then press Back to return. This app does not draw floating windows. Your Home launcher will stay unchanged.</string>
+    <string name="startup_permission_missing">Boot startup is not enabled</string>
+    <string name="startup_permission_help">Allow “Display over other apps” for DigitalSignageTV, then return to this app to finish setup. If your TV hides or restricts this permission, ask your administrator for setup assistance. Some TVs may delay or restrict startup. Cancel continues without enabling boot startup.</string>
     <string name="launcher_yes">Yes</string>
     <string name="launcher_later">Later</string>
     <string name="launcher_open_settings">Open settings</string>
