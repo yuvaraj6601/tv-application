@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.KeyEvent
 import android.widget.Toast
 import com.digitalsignagetv.boot.BootStartup
 import com.facebook.react.ReactActivity
@@ -195,6 +196,13 @@ class MainActivity : ReactActivity() {
         launcherDialog?.dismiss()
         launcherDialog = null
         super.onDestroy()
+    }
+
+    // Signage must stay on screen: swallow remote Back so it can't exit or reach JS.
+    // Setup dialogs use their own window, so Back still dismisses them.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_BACK) return true
+        return super.dispatchKeyEvent(event)
     }
 
     override fun getMainComponentName(): String = "DigitalSignageTV"
