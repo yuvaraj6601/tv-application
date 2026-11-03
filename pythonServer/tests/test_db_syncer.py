@@ -173,3 +173,93 @@ async def test_conflict_partial_failure_leaves_bad_day_untouched(
     assert synced == [tmp_path / "processedData" / "2026-08-04"]
     assert not good_day_dir.exists()
     assert bad_day_dir.exists()
+
+
+def _append_raw_line(day_dir, file_name: str, raw: bytes) -> None:
+    with (day_dir / file_name).open("ab") as f:
+        f.write(raw + b"\n")
+
+
+async def _seed_visitor(session_factory: async_sessionmaker[AsyncSession]) -> None:
+    async with session_factory() as session:
+        await repository.upsert_visitor(
+            session, "visitor-1", PI_ID, [0.1, 0.2, 0.3], datetime(2026, 8, 5, 8, 55, 0), age=32, gender="male"
+        )
+        await session.commit()
+
+
+async def test_corruption_nul_prefixed_line_is_repaired_and_synced(
+    tmp_path, session_factory: async_sessionmaker[AsyncSession]
+) -> None:
+    await _seed_visitor(session_factory)
+    day_dir = tmp_path / "syncData" / "2026-08-05"
+    _write_sessions_file(day_dir, [_session_record()])
+    # Power-loss artefact: a run of NUL bytes in front of an otherwise valid record.
+    _append_raw_line(day_dir, "sessions.jsonl", b"\x00" * 50 + json.dumps(_session_record()).encode())
+
+    synced = await db_syncer.sync_pending(session_factory, tmp_path, PI_ID)
+
+    assert synced == [tmp_path / "processedData" / "2026-08-05"]
+    async with session_factory() as session:
+        total = await repository.get_total_watch_time_seconds(session, PI_ID)
+    assert total == 40
+
+
+async def test_corruption_unparseable_line_is_skipped_and_rest_of_day_synced(
+    tmp_path, session_factory: async_sessionmaker[AsyncSession]
+) -> None:
+    await _seed_visitor(session_factory)
+    day_dir = tmp_path / "syncData" / "2026-08-05"
+    _write_sessions_file(day_dir, [_session_record()])
+    _append_raw_line(day_dir, "sessions.jsonl", b'{"visitor_id": "visitor-1", "started_at": "2026-08')
+
+    synced = await db_syncer.sync_pending(session_factory, tmp_path, PI_ID)
+
+    assert synced == [tmp_path / "processedData" / "2026-08-05"]
+    assert not day_dir.exists()
+    async with session_factory() as session:
+        total = await repository.get_total_watch_time_seconds(session, PI_ID)
+    assert total == 20
+
+
+async def test_corruption_unparseable_line_is_preserved_in_corrupt_file(
+    tmp_path, session_factory: async_sessionmaker[AsyncSession]
+) -> None:
+    await _seed_visitor(session_factory)
+    day_dir = tmp_path / "syncData" / "2026-08-05"
+    _write_sessions_file(day_dir, [_session_record()])
+    bad_line = b'{"visitor_id": "visitor-1", "started_at": "2026-08'
+    _append_raw_line(day_dir, "sessions.jsonl", bad_line)
+
+    await db_syncer.sync_pending(session_factory, tmp_path, PI_ID)
+
+    corrupt_file = tmp_path / "processedData" / "2026-08-05" / "sessions.jsonl.corrupt"
+    assert corrupt_file.read_bytes() == bad_line + b"\n"
+
+
+async def test_corruption_visitors_file_is_also_tolerant(
+    tmp_path, session_factory: async_sessionmaker[AsyncSession]
+) -> None:
+    day_dir = tmp_path / "syncData" / "2026-08-05"
+    _write_visitors_file(day_dir, [_visitor_record("visitor-1")])
+    _append_raw_line(day_dir, "visitors.jsonl", b"\x00\x00\x00 not json")
+    _write_sessions_file(day_dir, [_session_record("visitor-1")])
+
+    synced = await db_syncer.sync_pending(session_factory, tmp_path, PI_ID)
+
+    assert synced == [tmp_path / "processedData" / "2026-08-05"]
+    async with session_factory() as session:
+        total = await repository.get_total_watch_time_seconds(session, PI_ID)
+    assert total == 20
+
+
+async def test_boundary_clean_files_produce_no_corrupt_file(
+    tmp_path, session_factory: async_sessionmaker[AsyncSession]
+) -> None:
+    await _seed_visitor(session_factory)
+    day_dir = tmp_path / "syncData" / "2026-08-05"
+    _write_sessions_file(day_dir, [_session_record()])
+
+    await db_syncer.sync_pending(session_factory, tmp_path, PI_ID)
+
+    assert list((tmp_path / "processedData" / "2026-08-05").glob("*.corrupt")) == []

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     environment: str = "local"
     pi_analytics_database_url: str
     pi_id: str = "local-dev-test"
+    pi_id_interface: str = "eth0"
 
     capture_interval_seconds: int = 2
     absence_timeout_seconds: int = 30
