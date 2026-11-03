@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import cv2
 import numpy as np
+import pytest
 
 from src import main
 from src.capture import face_detector
@@ -21,20 +22,75 @@ class _FakeAnalysis:
         return self._faces
 
 
-def test_resolve_pi_id_production_uses_getmac(monkeypatch) -> None:
-    monkeypatch.setattr(main.getmac, "get_mac_address", lambda: "b8:27:eb:11:11:11")
+def _fake_interfaces(monkeypatch, macs: dict[str, str | None]) -> list[str]:
+    """Patch getmac so only the named interfaces resolve; returns the interfaces that were queried."""
+    queried: list[str] = []
+
+    def fake_get_mac_address(interface: str | None = None, **_: object) -> str | None:
+        queried.append(str(interface))
+        return macs.get(str(interface))
+
+    monkeypatch.setattr(main.getmac, "get_mac_address", fake_get_mac_address)
+    return queried
+
+
+def test_resolve_pi_id_production_uses_eth0_by_default(monkeypatch) -> None:
+    _fake_interfaces(monkeypatch, {"eth0": "d8:3a:dd:bb:fb:01", "wlan0": "d8:3a:dd:bb:fb:02"})
 
     pi_id = main.resolve_pi_id("production", "local-dev-test")
 
-    assert pi_id == "b8:27:eb:11:11:11"
+    assert pi_id == "d8:3a:dd:bb:fb:01"
+
+
+def test_resolve_pi_id_production_is_stable_when_other_interfaces_change(monkeypatch) -> None:
+    _fake_interfaces(monkeypatch, {"eth0": "d8:3a:dd:bb:fb:01"})
+    without_wlan = main.resolve_pi_id("production", "local-dev-test")
+
+    _fake_interfaces(monkeypatch, {"eth0": "d8:3a:dd:bb:fb:01", "wlan0": "d8:3a:dd:bb:fb:02", "p2p-dev-wlan0": "da:3a:dd:bb:fb:02"})
+    with_wlan = main.resolve_pi_id("production", "local-dev-test")
+
+    assert without_wlan == with_wlan == "d8:3a:dd:bb:fb:01"
+
+
+def test_resolve_pi_id_production_honours_configured_interface(monkeypatch) -> None:
+    queried = _fake_interfaces(monkeypatch, {"eth0": "d8:3a:dd:bb:fb:01", "wlan0": "d8:3a:dd:bb:fb:02"})
+
+    pi_id = main.resolve_pi_id("production", "local-dev-test", interface="wlan0")
+
+    assert pi_id == "d8:3a:dd:bb:fb:02"
+    assert queried[0] == "wlan0"
+
+
+def test_resolve_pi_id_production_falls_back_to_wlan0_when_interface_missing(monkeypatch) -> None:
+    _fake_interfaces(monkeypatch, {"eth0": None, "wlan0": "d8:3a:dd:bb:fb:02"})
+
+    pi_id = main.resolve_pi_id("production", "local-dev-test")
+
+    assert pi_id == "d8:3a:dd:bb:fb:02"
+
+
+def test_resolve_pi_id_production_raises_when_no_interface_resolves(monkeypatch) -> None:
+    _fake_interfaces(monkeypatch, {})
+
+    with pytest.raises(RuntimeError, match="eth0"):
+        main.resolve_pi_id("production", "local-dev-test")
+
+
+def test_resolve_pi_id_production_normalises_mac_to_lowercase(monkeypatch) -> None:
+    _fake_interfaces(monkeypatch, {"eth0": "D8:3A:DD:BB:FB:01"})
+
+    pi_id = main.resolve_pi_id("production", "local-dev-test")
+
+    assert pi_id == "d8:3a:dd:bb:fb:01"
 
 
 def test_resolve_pi_id_local_uses_configured_value(monkeypatch) -> None:
-    monkeypatch.setattr(main.getmac, "get_mac_address", lambda: "should-not-be-used")
+    queried = _fake_interfaces(monkeypatch, {"eth0": "should-not-be-used"})
 
     pi_id = main.resolve_pi_id("local", "local-dev-test")
 
     assert pi_id == "local-dev-test"
+    assert queried == []
 
 
 def test_process_frame_happy_path_records_presence_for_detected_face(monkeypatch) -> None:

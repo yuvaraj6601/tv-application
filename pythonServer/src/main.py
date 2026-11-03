@@ -23,10 +23,19 @@ from src.storage.folder_rotator import rotate_day
 logger = logging.getLogger(__name__)
 
 
-def resolve_pi_id(environment: str, configured_pi_id: str) -> str:
-    if environment == "production":
-        return str(getmac.get_mac_address())
-    return configured_pi_id
+FALLBACK_PI_ID_INTERFACE = "wlan0"
+
+
+def resolve_pi_id(environment: str, configured_pi_id: str, interface: str = "eth0") -> str:
+    if environment != "production":
+        return configured_pi_id
+    # Pin to one named interface: an unqualified getmac lookup flips between eth0/wlan0 with link state.
+    for candidate in (interface, FALLBACK_PI_ID_INTERFACE):
+        mac = getmac.get_mac_address(interface=candidate)
+        if mac:
+            logger.info("pi_id %s resolved from interface %s", mac.lower(), candidate)
+            return str(mac).lower()
+    raise RuntimeError(f"Could not read a MAC address from {interface} or {FALLBACK_PI_ID_INTERFACE}")
 
 
 def process_frame(
@@ -121,7 +130,7 @@ async def run() -> None:
     configure_logging()
     await check_db_connection()
 
-    pi_id = resolve_pi_id(settings.environment, settings.pi_id)
+    pi_id = resolve_pi_id(settings.environment, settings.pi_id, settings.pi_id_interface)
     logger.info("Starting pythonServer for pi_id=%s", pi_id)
 
     known_faces_cache = Path(settings.data_dir) / "knownFaces.json"
