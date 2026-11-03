@@ -19,10 +19,27 @@ SessionFactory = Callable[[], AsyncContextManager[AsyncSession]]
 
 
 def _read_jsonl(file_path: Path) -> list[dict[str, object]]:
+    """Parse a JSONL file, tolerating corrupt lines (e.g. NUL bytes left by a power cut mid-write).
+
+    NUL bytes are stripped; a line that still fails to parse is skipped and preserved verbatim in
+    `<file>.corrupt` so one bad line never blocks the rest of the day.
+    """
     if not file_path.exists():
         return []
-    with file_path.open("r", encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
+    records: list[dict[str, object]] = []
+    corrupt_lines: list[bytes] = []
+    with file_path.open("rb") as f:
+        for line_number, raw in enumerate(f, start=1):
+            if not raw.strip(b"\x00 \t\r\n"):
+                continue
+            try:
+                records.append(json.loads(raw.replace(b"\x00", b"")))
+            except ValueError:
+                logger.warning("Skipping unparseable line %d in %s", line_number, file_path)
+                corrupt_lines.append(raw if raw.endswith(b"\n") else raw + b"\n")
+    if corrupt_lines:
+        file_path.with_name(file_path.name + ".corrupt").write_bytes(b"".join(corrupt_lines))
+    return records
 
 
 async def _sync_day(session: AsyncSession, pi_id: str, day_dir: Path) -> int:
